@@ -1,0 +1,41 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Service is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "api_key": "API key"
+                },
+                "data_description": {
+                    "api_key": "Perplexity API key"
+                }
+            }
+        }
+    },
+    "config_subentries": {
+        "ai_task_data": {
+            "entry_type": "AI task",
+            "initiate_flow": {
+                "user": "Add AI task"
+            },
+            "step": {
+                "user": {
+                    "data": {
+                        "model": "Model"
+                    },
+                    "data_description": {
+                        "model": "The model to use for the AI task"
+                    },
+                    "description": "Configure the new AI task"
+                }
+            }
+        }
+    }
+}

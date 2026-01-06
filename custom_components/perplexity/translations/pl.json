@@ -1,0 +1,41 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Usługa jest już skonfigurowana"
+        },
+        "error": {
+            "cannot_connect": "Błąd połączenia",
+            "invalid_auth": "Błąd autoryzacji",
+            "unknown": "Niespodziewany błąd"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "api_key": "Klucz API"
+                },
+                "data_description": {
+                    "api_key": "Klucz API Perplexity"
+                }
+            }
+        }
+    },
+    "config_subentries": {
+        "ai_task_data": {
+            "entry_type": "Zadanie AI",
+            "initiate_flow": {
+                "user": "Dodaj zadanie AI"
+            },
+            "step": {
+                "user": {
+                    "data": {
+                        "model": "Model"
+                    },
+                    "data_description": {
+                        "model": "Model, uzywany do zadań AI"
+                    },
+                    "description": "Skonfiguruj nowe zadanie AI"
+                }
+            }
+        }
+    }
+}
