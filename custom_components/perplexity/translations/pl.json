@@ -31,9 +31,9 @@
                         "model": "Model"
                     },
                     "data_description": {
-                        "model": "Model, uzywany do zadań AI"
+                        "model": "Model, używany na potrzeby zadania AI."
                     },
-                    "description": "Skonfiguruj nowe zadanie AI"
+                    "description": "Skonfiguruj nowe zadanie AI."
                 }
             }
         }
