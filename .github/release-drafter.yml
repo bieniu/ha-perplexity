@@ -1,0 +1,60 @@
+name-template: "Version $RESOLVED_VERSION"
+tag-template: "$RESOLVED_VERSION"
+
+change-template: "- #$NUMBER $TITLE @$AUTHOR"
+sort-direction: ascending
+
+categories:
+  - title: "🚨 Breaking changes"
+    label: "breaking-change"
+
+  - title: "✨ New features"
+    label: "new-feature"
+
+  - title: "🐛 Bug fixes"
+    label: "bugfix"
+
+  - title: "🚀 Enhancements"
+    labels:
+      - "enhancement"
+      - "refactor"
+      - "performance"
+
+  - title: "🧰 Maintenance"
+    labels:
+      - "maintenance"
+      - "ci"
+
+  - title: "📚 Documentation"
+    labels:
+      - "documentation"
+
+  - title: "⬆️ Dependency updates"
+    collapse-after: 1
+    labels:
+      - "dependencies"
+
+version-resolver:
+  major:
+    labels:
+      - "breaking-change"
+  minor:
+    labels:
+      - "new-feature"
+  patch:
+    labels:
+      - "bugfix"
+      - "ci"
+      - "dependencies"
+      - "documentation"
+      - "enhancement"
+      - "performance"
+      - "refactor"
+  default: patch
+
+template: |
+  [![Downloads for this release](https://img.shields.io/github/downloads/bieniu/ha-perplexity/$RESOLVED_VERSION/total.svg)](https://github.com/bieniu/ha-perplexity/releases/$RESOLVED_VERSION)
+
+  ## What's changed
+
+  $CHANGES
