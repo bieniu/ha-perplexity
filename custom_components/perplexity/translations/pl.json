@@ -15,7 +15,8 @@
                 },
                 "data_description": {
                     "api_key": "Klucz API Perplexity"
-                }
+                },
+                "description": "By wygenerowa\u0107 klucz API id\u017a do {api_key_url}"
             }
         }
     },

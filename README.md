@@ -18,6 +18,8 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=perplexity)
 
+To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
+
 ## How to debug
 
 To debug the integration add this to your `logger` configuration:
