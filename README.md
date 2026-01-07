@@ -30,6 +30,15 @@ logger:
     custom_components.perplexity: debug
 ```
 
+## How to create dev environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-dev.txt
+prek install
+```
+
 [releases]: https://github.com/bieniu/ha-perplexity/releases
 [releases-shield]: https://img.shields.io/github/release/bieniu/ha-perplexity.svg?style=popout
 [downloads-total-shield]: https://img.shields.io/github/downloads/bieniu/ha-perplexity/total
