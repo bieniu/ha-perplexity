@@ -1,0 +1,4 @@
+homeassistant
+perplexityai==0.22.0
+mypy==1.19.1
+ruff==0.14.10

@@ -1,0 +1,91 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+python_version = "3.14"
+show_error_codes = true
+follow_imports = "silent"
+ignore_missing_imports = true
+warn_incomplete_stub = true
+warn_redundant_casts = true
+warn_unused_configs = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+warn_return_any = true
+warn_unused_ignores = true
+warn_unreachable = true
+
+[tool.ruff]
+target-version = "py314"
+
+lint.select = ["ALL"]
+
+lint.ignore = [
+    "COM812",   # Trailing comma missing
+    "D203",     # 1 blank line required before class docstring
+    "D213",     # Multi-line docstring summary should start at the second line
+    "EM101",    # Exception must not use a string literal, assign to variable first
+    "FBT001",   # Boolean positional arg in function definition
+    "PLR0915",  # Too many statements
+    "TC001",    # Move application import into a type-checking block
+    "TC002",    # Move third-party import into a type-checking block
+    "TC003",    # Move standard library import into a type-checking block
+    "TRY003",   # Avoid specifying long messages outside the exception class
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 25
+
+[tool.tox]
+legacy_tox_ini = """
+
+[tox]
+envlist = py314, lint, typing, coverage
+skip_missing_interpreters = True
+
+[gh-actions]
+python =
+  3.14: py314, lint, typing, coverage
+
+[testenv]
+commands =
+  pytest --timeout=30 --cov=custom_components/perplexity --cov-report=term-missing --cov-report=xml {posargs} --error-for-skips
+install_command =
+  uv pip install --prerelease=allow {opts} {packages}
+deps =
+  -rrequirements-test.txt
+
+[testenv:lint]
+basepython = python3
+depends = py314
+ignore_errors = True
+usedevelop = False
+skip_install = True
+commands =
+  ruff check .
+  ruff format --check .
+
+[testenv:typing]
+basepython = python3
+depends = py314
+ignore_errors = True
+usedevelop = False
+skip_install = True
+commands =
+  mypy custom_components/perplexity
+
+[testenv:coverage]
+basepython = python3
+depends = py314
+usedevelop = False
+skip_install = True
+commands =
+  coverage report --fail-under=79
+"""
