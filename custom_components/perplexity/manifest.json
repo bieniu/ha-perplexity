@@ -1,13 +1,19 @@
 {
-  "domain": "perplexity",
-  "name": "Perplexity",
-  "codeowners": ["@bieniu"],
-  "config_flow": true,
-  "dependencies": ["conversation"],
-  "documentation": "https://github.com/bieniu/ha-perplexity",
-  "integration_type": "service",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/bieniu/ha-perplexity",
-  "requirements": ["perplexityai==0.22.0"],
-  "version": "0.0.0"
+    "domain": "perplexity",
+    "name": "Perplexity",
+    "codeowners": [
+        "@bieniu"
+    ],
+    "config_flow": true,
+    "dependencies": [
+        "conversation"
+    ],
+    "documentation": "https://github.com/bieniu/ha-perplexity",
+    "integration_type": "service",
+    "iot_class": "cloud_polling",
+    "issue_tracker": "https://github.com/bieniu/ha-perplexity",
+    "requirements": [
+        "perplexityai==0.22.2"
+    ],
+    "version": "0.0.0"
 }
