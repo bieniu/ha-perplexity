@@ -15,7 +15,8 @@
                 },
                 "data_description": {
                     "api_key": "Perplexity API key"
-                }
+                },
+                "description": "To generate API key go to {api_key_url}"
             }
         }
     },

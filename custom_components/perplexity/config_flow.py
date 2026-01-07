@@ -29,6 +29,8 @@ from .const import DOMAIN, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
 
 _LOGGER = logging.getLogger(__name__)
 
+USER_STEP_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
+
 
 class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Perplexity."""
@@ -82,6 +84,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+            description_placeholders=USER_STEP_PLACEHOLDERS,
         )
 
 
