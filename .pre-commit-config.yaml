@@ -16,30 +16,34 @@ repos:
           - --quiet-level=2
         exclude_types: [csv, json]
         exclude: ^tests/fixtures/|^tests/snapshots/
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  - repo: builtin
     hooks:
       - id: end-of-file-fixer
-      - id: mixed-line-ending
       - id: trailing-whitespace
+      - id: check-added-large-files
       - id: check-yaml
       - id: check-json
       - id: check-toml
+      - id: detect-private-key
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+        args:
+          - --branch=master
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
       - id: pretty-format-json
         args:
           - --no-sort-keys
           - --indent=4
           - --autofix
-      - id: no-commit-to-branch
-        args:
-          - --branch=master
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.19.1"
+    rev: v1.19.1
     hooks:
       - id: mypy
         files: ^(custom_components/perplexity)/.+\.py$

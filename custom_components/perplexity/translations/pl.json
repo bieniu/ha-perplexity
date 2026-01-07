@@ -1,12 +1,12 @@
 {
     "config": {
         "abort": {
-            "already_configured": "Usługa jest już skonfigurowana"
+            "already_configured": "Us\u0142uga jest ju\u017c skonfigurowana"
         },
         "error": {
-            "cannot_connect": "Błąd połączenia",
-            "invalid_auth": "Błąd autoryzacji",
-            "unknown": "Niespodziewany błąd"
+            "cannot_connect": "B\u0142\u0105d po\u0142\u0105czenia",
+            "invalid_auth": "B\u0142\u0105d autoryzacji",
+            "unknown": "Niespodziewany b\u0142\u0105d"
         },
         "step": {
             "user": {
@@ -31,7 +31,7 @@
                         "model": "Model"
                     },
                     "data_description": {
-                        "model": "Model, używany na potrzeby zadania AI."
+                        "model": "Model, u\u017cywany na potrzeby zadania AI."
                     },
                     "description": "Skonfiguruj nowe zadanie AI."
                 }
