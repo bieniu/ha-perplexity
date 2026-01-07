@@ -3,25 +3,26 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import AsyncGenerator
 import json
+from collections.abc import AsyncGenerator
 from mimetypes import guess_file_type
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from perplexity import AsyncPerplexity, PerplexityError
-from perplexity.types import StreamChunk
-from perplexity.types.chat.completion_create_params import Tool, ToolFunction
 import voluptuous as vol
-from voluptuous_openapi import convert
-
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, llm
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
+from voluptuous_openapi import convert
+
+from perplexity import AsyncPerplexity, PerplexityError
+from perplexity.types import StreamChunk
+from perplexity.types.chat.completion_create_params import Tool, ToolFunction
 
 from . import PerplexityConfigEntry
 from .const import DOMAIN, LOGGER
@@ -79,7 +80,7 @@ def _format_structured_output(
 
 def _format_tool(
     tool: llm.Tool,
-    custom_serializer: Any,
+    custom_serializer: Any,  # noqa: ANN401
 ) -> Tool:
     """Format tool specification."""
     parameters = convert(tool.parameters, custom_serializer=custom_serializer)
@@ -136,7 +137,7 @@ def _convert_content_to_chat_message(
     return None
 
 
-def _decode_tool_arguments(arguments: str) -> Any:
+def _decode_tool_arguments(arguments: str) -> Any:  # noqa: ANN401
     """Decode tool call arguments."""
     try:
         return json.loads(arguments)
@@ -186,7 +187,7 @@ async def _async_prepare_files_for_prompt(
                 raise HomeAssistantError(f"`{file_path}` does not exist")
 
             if mime_type is None:
-                mime_type = guess_file_type(file_path)[0]
+                mime_type = guess_file_type(file_path)[0]  # noqa: PLW2901
 
             if not mime_type or not mime_type.startswith("image/"):
                 raise HomeAssistantError(
@@ -256,9 +257,11 @@ class PerplexityEntity(Entity):
         # Handle attachments by adding them to the last user message
         if last_content.role == "user" and last_content.attachments:
             last_message = model_args["messages"][-1]
-            assert last_message["role"] == "user" and isinstance(
-                last_message["content"], str
-            )
+
+            if TYPE_CHECKING:
+                assert last_message["role"] == "user"
+                assert isinstance(last_message["content"], str)
+
             # Encode files with base64 and append them to the text prompt
             files = await _async_prepare_files_for_prompt(
                 self.hass,

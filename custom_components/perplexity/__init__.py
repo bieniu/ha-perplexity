@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
+
+from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import LOGGER
 
@@ -24,7 +24,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
         http_client=get_async_client(hass),
     )
 
-    # Cache current platform data which gets added to each request (caching done by library)
+    # Cache current platform data which gets added to each request (caching done by
+    # library)
     _ = await hass.async_add_executor_job(client.platform_headers)
 
     try:

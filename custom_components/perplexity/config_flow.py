@@ -5,9 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -25,6 +23,8 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
+from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
+
 from .const import DOMAIN, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,7 +38,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
     @classmethod
     @callback
     def async_get_supported_subentry_types(
-        cls, config_entry: ConfigEntry
+        cls,
+        config_entry: ConfigEntry,  # noqa: ARG003
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this handler."""
         return {
