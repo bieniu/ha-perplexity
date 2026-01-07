@@ -8,10 +8,6 @@
 # Perplexity
 Perplexity integration for Home Assistant.
 
-## Installation
-
-You can install this integration manually or via [HACS](https://hacs.xyz) if you add the repository to the custom repository list (**three dot menu** >> **Custom repositories**)
-
 ## Configuration
 
 To configure integration in Home Assistant, go to **Settings** >> **Devices & services** >> **Add integration** >> **Perplexity** or use My Home Assistant link.
