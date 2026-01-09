@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -85,6 +86,48 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             description_placeholders=USER_STEP_PLACEHOLDERS,
+        )
+
+    async def async_step_reauth(
+        self,
+        entry_data: Mapping[str, Any],  # noqa: ARG002
+    ) -> ConfigFlowResult:
+        """Handle a reauthorization flow request."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reauthorization flow."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            client = AsyncPerplexity(
+                api_key=user_input[CONF_API_KEY],
+                http_client=get_async_client(self.hass),
+            )
+            try:
+                await client.chat.completions.create(
+                    model="sonar",
+                    messages=[{"role": "user", "content": "ping"}],
+                )
+            except AuthenticationError:
+                errors["base"] = "invalid_auth"
+            except PerplexityError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    self._get_reauth_entry(),
+                    data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            errors=errors,
         )
 
 
