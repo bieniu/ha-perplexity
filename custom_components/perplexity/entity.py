@@ -20,7 +20,7 @@ from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
 from voluptuous_openapi import convert
 
-from perplexity import AsyncPerplexity, PerplexityError
+from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import StreamChunk
 from perplexity.types.chat.completion_create_params import Tool, ToolFunction
 
@@ -282,6 +282,8 @@ class PerplexityEntity(Entity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
                 result = await client.chat.completions.create(**model_args)
+            except AuthenticationError:
+                self.entry.async_start_reauth(self.hass)
             except PerplexityError as err:
                 LOGGER.error("Error talking to Perplexity API: %s", err)
                 raise HomeAssistantError("Error talking to Perplexity API") from err

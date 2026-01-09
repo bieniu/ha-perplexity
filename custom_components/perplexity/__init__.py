@@ -5,7 +5,7 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
 
 from perplexity import (  # type: ignore[attr-defined]
@@ -13,8 +13,6 @@ from perplexity import (  # type: ignore[attr-defined]
     AuthenticationError,
     PerplexityError,
 )
-
-from .const import LOGGER
 
 PLATFORMS = [Platform.AI_TASK]
 
@@ -38,8 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
             messages=[{"role": "user", "content": "ping"}],
         )
     except AuthenticationError as err:
-        LOGGER.error("Invalid API key: %s", err)
-        raise ConfigEntryError("Invalid API key") from err
+        raise ConfigEntryAuthFailed("Invalid API key") from err
     except PerplexityError as err:
         raise ConfigEntryNotReady(err) from err
 

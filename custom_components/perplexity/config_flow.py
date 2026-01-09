@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -25,9 +25,7 @@ from homeassistant.helpers.selector import (
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN, LOGGER, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
 
 USER_STEP_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
 
@@ -48,6 +46,17 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             "ai_task_data": PerplexityAITaskFlowHandler,
         }
 
+    async def _validate_input(self, user_input: dict[str, Any]) -> None:
+        """Validate the user input allows us to connect."""
+        client = AsyncPerplexity(
+            api_key=user_input[CONF_API_KEY],
+            http_client=get_async_client(self.hass),
+        )
+        await client.chat.completions.create(
+            model="sonar",
+            messages=[{"role": "user", "content": "ping"}],
+        )
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -55,21 +64,14 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             self._async_abort_entries_match(user_input)
-            client = AsyncPerplexity(
-                api_key=user_input[CONF_API_KEY],
-                http_client=get_async_client(self.hass),
-            )
             try:
-                await client.chat.completions.create(
-                    model="sonar",
-                    messages=[{"role": "user", "content": "ping"}],
-                )
+                await self._validate_input(user_input)
             except AuthenticationError:
                 errors["base"] = "invalid_auth"
             except PerplexityError:
                 errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
@@ -85,6 +87,41 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             description_placeholders=USER_STEP_PLACEHOLDERS,
+        )
+
+    async def async_step_reauth(
+        self,
+        entry_data: Mapping[str, Any],  # noqa: ARG002
+    ) -> ConfigFlowResult:
+        """Handle a reauthorization flow request."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reauthorization flow."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                await self._validate_input(user_input)
+            except AuthenticationError:
+                errors["base"] = "invalid_auth"
+            except PerplexityError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+            else:
+                return self.async_update_reload_and_abort(
+                    self._get_reauth_entry(),
+                    data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            errors=errors,
         )
 
 

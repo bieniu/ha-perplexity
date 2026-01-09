@@ -32,7 +32,7 @@ logger:
     custom_components.perplexity: debug
 ```
 
-## How to create dev environment
+## How to create a dev environment
 
 ```bash
 python3 -m venv venv
