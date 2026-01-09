@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -26,9 +25,7 @@ from homeassistant.helpers.selector import (
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
-
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN, LOGGER, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
 
 USER_STEP_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
 
@@ -73,8 +70,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except PerplexityError:
                 errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
@@ -112,8 +109,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except PerplexityError:
                 errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 return self.async_update_reload_and_abort(
