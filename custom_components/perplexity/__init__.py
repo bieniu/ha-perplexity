@@ -16,7 +16,7 @@ from perplexity import (  # type: ignore[attr-defined]
 
 PLATFORMS = [Platform.AI_TASK]
 
-type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]
+type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]  # type: ignore[misc]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -> bool:

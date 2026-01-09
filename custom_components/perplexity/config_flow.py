@@ -48,6 +48,17 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         return {
             "ai_task_data": PerplexityAITaskFlowHandler,
         }
+    
+    async def _validate_input(self, user_input: dict[str, Any]) -> None:
+        """Validate the user input allows us to connect."""
+        client = AsyncPerplexity(
+            api_key=user_input[CONF_API_KEY],
+            http_client=get_async_client(self.hass),
+        )
+        await client.chat.completions.create(
+            model="sonar",
+            messages=[{"role": "user", "content": "ping"}],
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -56,15 +67,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             self._async_abort_entries_match(user_input)
-            client = AsyncPerplexity(
-                api_key=user_input[CONF_API_KEY],
-                http_client=get_async_client(self.hass),
-            )
             try:
-                await client.chat.completions.create(
-                    model="sonar",
-                    messages=[{"role": "user", "content": "ping"}],
-                )
+                await self._validate_input(user_input)
             except AuthenticationError:
                 errors["base"] = "invalid_auth"
             except PerplexityError:
@@ -102,15 +106,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            client = AsyncPerplexity(
-                api_key=user_input[CONF_API_KEY],
-                http_client=get_async_client(self.hass),
-            )
             try:
-                await client.chat.completions.create(
-                    model="sonar",
-                    messages=[{"role": "user", "content": "ping"}],
-                )
+                await self._validate_input(user_input)
             except AuthenticationError:
                 errors["base"] = "invalid_auth"
             except PerplexityError:
