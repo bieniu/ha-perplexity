@@ -48,7 +48,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         return {
             "ai_task_data": PerplexityAITaskFlowHandler,
         }
-    
+
     async def _validate_input(self, user_input: dict[str, Any]) -> None:
         """Validate the user input allows us to connect."""
         client = AsyncPerplexity(
