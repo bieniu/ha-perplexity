@@ -8,6 +8,8 @@
 # Perplexity
 Perplexity integration for Home Assistant.
 
+<img width="1044" height="585" alt="obraz" src="https://github.com/user-attachments/assets/67a37ebb-6726-490a-a91f-82e14d997abc" />
+
 ## Installation
 
 You can install this integration manually or via [HACS](https://hacs.xyz) if you add the repository to the custom repository list (**three dot menu** >> **Custom repositories**)
@@ -20,6 +22,11 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
 
+## Features
+Perplexity integration supports:
+
+- [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
+
 ## How to debug
 
 To debug the integration add this to your `logger` configuration:
@@ -30,6 +37,7 @@ logger:
   default: warning
   logs:
     custom_components.perplexity: debug
+    perplexity: debug
 ```
 
 ## How to create a dev environment
