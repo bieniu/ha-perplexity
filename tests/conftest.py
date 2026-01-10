@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
+from homeassistant.components.conversation.const import DOMAIN as CONVERSATION_DOMAIN
 from homeassistant.const import CONF_API_KEY, CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -20,6 +21,7 @@ from custom_components.perplexity.const import DOMAIN
 async def setup_ha(hass: HomeAssistant) -> None:
     """Set up Home Assistant."""
     assert await async_setup_component(hass, "homeassistant", {})
+    assert await async_setup_component(hass, CONVERSATION_DOMAIN, {})
 
 
 @pytest.fixture(autouse=True)
