@@ -1,6 +1,6 @@
 """Tests for the Perplexity config flow."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_API_KEY, CONF_MODEL
@@ -47,8 +47,8 @@ async def test_user_flow_invalid_auth(
         DOMAIN, context={"source": SOURCE_USER}
     )
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    mock_perplexity_client.chat.completions.create.side_effect = AuthenticationError(
+        "Invalid API key", response=Mock(), body=None
     )
 
     with patch(
@@ -73,8 +73,8 @@ async def test_user_flow_cannot_connect(
         DOMAIN, context={"source": SOURCE_USER}
     )
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=PerplexityError("Connection error")
+    mock_perplexity_client.chat.completions.create.side_effect = PerplexityError(
+        "Connection error"
     )
 
     with patch(
@@ -99,8 +99,8 @@ async def test_user_flow_unknown_error(
         DOMAIN, context={"source": SOURCE_USER}
     )
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=RuntimeError("Unknown error")
+    mock_perplexity_client.chat.completions.create.side_effect = RuntimeError(
+        "Unknown error"
     )
 
     with patch(
@@ -163,8 +163,8 @@ async def test_reauth_flow_invalid_auth(
     """Test reauth flow with invalid auth."""
     result = await mock_config_entry.start_reauth_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    mock_perplexity_client.chat.completions.create.side_effect = AuthenticationError(
+        "Invalid API key", response=Mock(), body=None
     )
 
     with patch(
@@ -188,8 +188,8 @@ async def test_reauth_flow_cannot_connect(
     """Test reauth flow with connection error."""
     result = await mock_config_entry.start_reauth_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=PerplexityError("Connection error")
+    mock_perplexity_client.chat.completions.create.side_effect = PerplexityError(
+        "Connection error"
     )
 
     with patch(
@@ -213,8 +213,8 @@ async def test_reauth_flow_unknown_error(
     """Test reauth flow with unknown error."""
     result = await mock_config_entry.start_reauth_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=RuntimeError("Unknown error")
+    mock_perplexity_client.chat.completions.create.side_effect = RuntimeError(
+        "Unknown error"
     )
 
     with patch(
@@ -262,8 +262,8 @@ async def test_reconfigure_flow_invalid_auth(
     """Test reconfigure flow with invalid auth."""
     result = await mock_config_entry.start_reconfigure_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    mock_perplexity_client.chat.completions.create.side_effect = AuthenticationError(
+        "Invalid API key", response=Mock(), body=None
     )
 
     with patch(
@@ -287,8 +287,8 @@ async def test_reconfigure_flow_cannot_connect(
     """Test reconfigure flow with connection error."""
     result = await mock_config_entry.start_reconfigure_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=PerplexityError("Connection error")
+    mock_perplexity_client.chat.completions.create.side_effect = PerplexityError(
+        "Connection error"
     )
 
     with patch(
@@ -312,8 +312,8 @@ async def test_reconfigure_flow_unknown_error(
     """Test reconfigure flow with unknown error."""
     result = await mock_config_entry.start_reconfigure_flow(hass)
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        side_effect=RuntimeError("Unknown error")
+    mock_perplexity_client.chat.completions.create.side_effect = RuntimeError(
+        "Unknown error"
     )
 
     with patch(

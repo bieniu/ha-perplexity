@@ -1,6 +1,6 @@
 """Tests for the Perplexity AI Task entity."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 import voluptuous as vol
@@ -58,9 +58,7 @@ async def test_ai_task_generate_data_without_structure(
     mock_response.choices = [MagicMock()]
     mock_response.choices[0].message.content = "Test response"
     mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_response
-    )
+    mock_perplexity_client.chat.completions.create.return_value = mock_response
 
     result = await ai_task.async_generate_data(
         hass,
@@ -82,9 +80,7 @@ async def test_ai_task_generate_data_with_structure(
     mock_response.choices = [MagicMock()]
     mock_response.choices[0].message.content = '{"key": "value"}'
     mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_response
-    )
+    mock_perplexity_client.chat.completions.create.return_value = mock_response
 
     result = await ai_task.async_generate_data(
         hass,
@@ -107,9 +103,7 @@ async def test_ai_task_generate_data_invalid_json(
     mock_response.choices = [MagicMock()]
     mock_response.choices[0].message.content = "invalid json"
     mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_response
-    )
+    mock_perplexity_client.chat.completions.create.return_value = mock_response
 
     with pytest.raises(HomeAssistantError, match="Error with Perplexity structured"):
         await ai_task.async_generate_data(
