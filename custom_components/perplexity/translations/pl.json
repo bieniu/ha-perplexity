@@ -2,7 +2,8 @@
     "config": {
         "abort": {
             "already_configured": "Us\u0142uga jest ju\u017c skonfigurowana",
-            "reauth_successful": "Ponowne uwierzytelnienie si\u0119 powiod\u0142o"
+            "reauth_successful": "Ponowne uwierzytelnienie si\u0119 powiod\u0142o",
+            "reconfigure_successful": "Ponowna konfiguracja si\u0119 powiod\u0142a"
         },
         "error": {
             "cannot_connect": "B\u0142\u0105d po\u0142\u0105czenia",
@@ -16,7 +17,17 @@
                 },
                 "data_description": {
                     "api_key": "Klucz API Perplexity"
-                }
+                },
+                "description": "Zaktualizuj klucz API Perplexity"
+            },
+            "reconfigure": {
+                "data": {
+                    "api_key": "Klucz API"
+                },
+                "data_description": {
+                    "api_key": "Klucz API Perplexity"
+                },
+                "description": "Zaktualizuj klucz API Perplexity"
             },
             "user": {
                 "data": {

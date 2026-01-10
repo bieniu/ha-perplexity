@@ -1,0 +1,278 @@
+"""Tests for the Perplexity config flow."""
+
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+from homeassistant.config_entries import SOURCE_USER
+from homeassistant.const import CONF_API_KEY
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from perplexity import AuthenticationError, PerplexityError
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.perplexity.const import DOMAIN
+
+
+async def test_user_flow_success(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test successful user flow."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Perplexity"
+    assert result["data"] == {CONF_API_KEY: "test_api_key"}
+
+
+async def test_user_flow_invalid_auth(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test user flow with invalid auth."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "invalid_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_user_flow_cannot_connect(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test user flow with connection error."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=PerplexityError("Connection error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_user_flow_unknown_error(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test user flow with unknown error."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=RuntimeError("Unknown error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
+
+
+async def test_user_flow_already_configured(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test user flow when already configured."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": SOURCE_USER},
+        data={CONF_API_KEY: "test_api_key"},
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_reauth_flow_success(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test successful reauth flow."""
+    result = await mock_config_entry.start_reauth_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "new_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert mock_config_entry.data[CONF_API_KEY] == "new_api_key"
+
+
+async def test_reauth_flow_invalid_auth(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reauth flow with invalid auth."""
+    result = await mock_config_entry.start_reauth_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "invalid_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_reconfigure_flow_success(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test successful reconfigure flow."""
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "new_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert mock_config_entry.data[CONF_API_KEY] == "new_api_key"
+
+
+async def test_reconfigure_flow_invalid_auth(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reconfigure flow with invalid auth."""
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=AuthenticationError("Invalid API key", response=Mock(), body=None)
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "invalid_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_reconfigure_flow_cannot_connect(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reconfigure flow with connection error."""
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=PerplexityError("Connection error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_reconfigure_flow_unknown_error(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reconfigure flow with unknown error."""
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=RuntimeError("Unknown error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
