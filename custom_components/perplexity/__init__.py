@@ -34,6 +34,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
         await client.chat.completions.create(
             model="sonar",
             messages=[{"role": "user", "content": "ping"}],
+            disable_search=True,
+            max_tokens=1,
         )
     except AuthenticationError as err:
         raise ConfigEntryAuthFailed("Invalid API key") from err
