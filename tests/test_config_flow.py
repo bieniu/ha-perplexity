@@ -3,12 +3,13 @@
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from homeassistant.config_entries import SOURCE_USER
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from perplexity import AuthenticationError, PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.perplexity.config_flow import PerplexityConfigFlow
 from custom_components.perplexity.const import DOMAIN
 
 
@@ -179,6 +180,56 @@ async def test_reauth_flow_invalid_auth(
     assert result["errors"] == {"base": "invalid_auth"}
 
 
+async def test_reauth_flow_cannot_connect(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reauth flow with connection error."""
+    result = await mock_config_entry.start_reauth_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=PerplexityError("Connection error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_reauth_flow_unknown_error(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test reauth flow with unknown error."""
+    result = await mock_config_entry.start_reauth_flow(hass)
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        side_effect=RuntimeError("Unknown error")
+    )
+
+    with patch(
+        "custom_components.perplexity.config_flow.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_API_KEY: "test_api_key"},
+        )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
+
+
 async def test_reconfigure_flow_success(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
@@ -276,3 +327,35 @@ async def test_reconfigure_flow_unknown_error(
 
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "unknown"}
+
+
+async def test_get_supported_subentry_types(
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test async_get_supported_subentry_types returns ai_task_data."""
+    subentry_types = PerplexityConfigFlow.async_get_supported_subentry_types(
+        mock_config_entry
+    )
+    assert "ai_task_data" in subentry_types
+
+
+async def test_ai_task_subentry_flow(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test AI task subentry flow."""
+    result = await hass.config_entries.subentries.async_init(
+        (mock_config_entry.entry_id, "ai_task_data"),
+        context={"source": SOURCE_USER},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_MODEL: "sonar-pro"},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Sonar Pro"
+    assert result["data"] == {CONF_MODEL: "sonar-pro"}
