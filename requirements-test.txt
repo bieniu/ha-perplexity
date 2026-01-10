@@ -1,4 +1,13 @@
+coverage
+hassil
+home-assistant-intents
 homeassistant
-perplexityai==0.22.2
 mypy==1.19.1
+perplexityai==0.22.2
+pytest
+pytest-cov
+pytest-error-for-skips==2.0.2
+pytest-homeassistant-custom-component==0.13.305
+pyturbojpeg
 ruff==0.14.10
+syrupy

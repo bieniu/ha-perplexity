@@ -1,0 +1,20 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'data': dict({
+      'api_key': '**REDACTED**',
+    }),
+    'subentries': dict({
+      'ulid-ai-task': dict({
+        'data': dict({
+          'model': 'sonar',
+        }),
+        'subentry_id': 'ulid-ai-task',
+        'subentry_type': 'ai_task_data',
+        'title': 'Sonar',
+        'unique_id': None,
+      }),
+    }),
+    'title': 'Perplexity',
+  })
+# ---
