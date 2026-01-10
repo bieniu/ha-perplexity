@@ -1,0 +1,31 @@
+# serializer version: 1
+# name: test_ai_task_entity[ai_task.sonar-entry]
+  dict({
+    'config_subentry_id': 'ulid-ai-task',
+    'disabled_by': None,
+    'entity_category': None,
+    'entity_id': 'ai_task.sonar',
+    'has_entity_name': True,
+    'icon': None,
+    'name': None,
+    'options': ReadOnlyDict({
+      'conversation': ReadOnlyDict({
+        'should_expose': False,
+      }),
+    }),
+    'original_name': None,
+    'platform': 'perplexity',
+    'translation_key': None,
+    'unique_id': 'ulid-ai-task',
+  })
+# ---
+# name: test_ai_task_entity[ai_task.sonar-state]
+  dict({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Sonar',
+      'supported_features': <AITaskEntityFeature.GENERATE_DATA|SUPPORT_ATTACHMENTS: 3>,
+    }),
+    'entity_id': 'ai_task.sonar',
+    'state': 'unknown',
+  })
+# ---
