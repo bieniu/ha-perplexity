@@ -54,7 +54,9 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         await client.chat.completions.create(
             model="sonar",
-            messages=[{"role": "user", "content": "ping"}],
+            messages=[{"role": "user", "content": "hi"}],
+            disable_search=True,
+            max_tokens=1,
         )
 
     async def async_step_user(
