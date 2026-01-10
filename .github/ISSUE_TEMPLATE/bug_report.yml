@@ -1,0 +1,42 @@
+name: Report an issue
+description: Report an issue with Perplexity integration.
+labels: bug
+body:
+  - type: markdown
+    attributes:
+      value: This issue form is for reporting bugs only!
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: The problem
+      description: >-
+        Describe the issue you are experiencing here.
+
+        Provide a clear and concise description of what the problem is.
+  - type: markdown
+    attributes:
+      value: |
+        ## Versions
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Home Assistant
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Perplexity integration
+  - type: textarea
+    attributes:
+      label: Diagnostics information
+      placeholder: "drag-and-drop the diagnostics data file here (do not copy-and-paste the content)"
+      description: >-
+        How to [download diagnostic data](https://www.home-assistant.io/docs/configuration/troubleshooting/#download-diagnostics)?
+  - type: textarea
+    attributes:
+      label: Debug log
+      placeholder: "drag-and-drop a log file here (do not copy-and-paste the content)"
+      description: >-
+        How to get a [debug log](https://www.home-assistant.io/docs/configuration/troubleshooting/#enabling-debug-logging)?
