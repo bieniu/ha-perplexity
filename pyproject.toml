@@ -95,5 +95,5 @@ depends = py314
 usedevelop = False
 skip_install = True
 commands =
-  coverage report
+  coverage report --fail-under=79
 """
