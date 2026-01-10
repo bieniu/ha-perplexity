@@ -45,6 +45,7 @@ lint.ignore = [
 "tests/*" = [
     "ARG001",    # Unused function argument
     "S101",      # Use of `assert` detected
+    "SLF001",    # Private member accessed
 ]
 
 [tool.ruff.lint.mccabe]
@@ -94,5 +95,5 @@ depends = py314
 usedevelop = False
 skip_install = True
 commands =
-  coverage report
+  coverage report --fail-under=79
 """
