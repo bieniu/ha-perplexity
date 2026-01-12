@@ -10,7 +10,7 @@ from perplexity import AuthenticationError, PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.perplexity.config_flow import PerplexityConfigFlow
-from custom_components.perplexity.const import DOMAIN
+from custom_components.perplexity.const import CONF_REASONING_EFFORT, DOMAIN
 
 
 async def test_user_flow_success(
@@ -359,3 +359,82 @@ async def test_ai_task_subentry_flow(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Sonar Pro"
     assert result["data"] == {CONF_MODEL: "sonar-pro"}
+
+
+async def test_ai_task_subentry_options_flow_reasoning_model(
+    hass: HomeAssistant,
+) -> None:
+    """Test AI task subentry options flow for reasoning model."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Perplexity",
+        data={"api_key": "test_api_key"},
+    )
+    entry.add_to_hass(hass)
+
+    # Create a subentry with reasoning model
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "ai_task_data"),
+        context={"source": SOURCE_USER},
+    )
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_MODEL: "sonar-reasoning-pro"},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    subentry_id = next(iter(entry.subentries.keys()))
+
+    subentry = entry.subentries[subentry_id]
+    assert subentry.data[CONF_MODEL] == "sonar-reasoning-pro"
+
+    # Now test reconfigure flow
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_REASONING_EFFORT: "high"},
+    )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+
+    # Verify the option was saved
+    subentry = entry.subentries[subentry_id]
+    assert subentry.data[CONF_REASONING_EFFORT] == "high"
+
+
+async def test_ai_task_subentry_options_flow_non_reasoning_model(
+    hass: HomeAssistant,
+) -> None:
+    """Test AI task subentry options flow aborts for non-reasoning model."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Perplexity",
+        data={"api_key": "test_api_key"},
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "ai_task_data"),
+        context={"source": SOURCE_USER},
+    )
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_MODEL: "sonar"},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    subentry_id = next(iter(entry.subentries.keys()))
+
+    result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "not_reasoning_model"

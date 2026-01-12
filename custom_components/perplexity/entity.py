@@ -24,7 +24,13 @@ from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import StreamChunk
 
 from . import PerplexityConfigEntry
-from .const import DOMAIN, LOGGER
+from .const import (
+    CONF_REASONING_EFFORT,
+    DEFAULT_REASONING_EFFORT,
+    DOMAIN,
+    LOGGER,
+    REASONING_MODELS,
+)
 
 # Max number of back and forth with the LLM to generate a response
 MAX_TOOL_ITERATIONS = 10
@@ -183,6 +189,11 @@ class PerplexityEntity(Entity):
             "model": self.model,
             "disable_search": True,
         }
+
+        if self.model in REASONING_MODELS:
+            model_args["reasoning_effort"] = self.subentry.data.get(
+                CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
+            )
 
         model_args["messages"] = [
             m
