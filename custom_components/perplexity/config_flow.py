@@ -27,7 +27,7 @@ from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import DOMAIN, LOGGER, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
 
-USER_STEP_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
+DESCRIPTION_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
 
 
 class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -92,7 +92,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
-            description_placeholders=USER_STEP_PLACEHOLDERS,
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
 
     async def async_step_reauth(
@@ -120,6 +120,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
             errors=errors,
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
 
     async def async_step_reconfigure(
@@ -140,6 +141,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reconfigure",
             data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
             errors=errors,
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
 
 

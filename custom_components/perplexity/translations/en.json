@@ -18,7 +18,7 @@
                 "data_description": {
                     "api_key": "Perplexity API key"
                 },
-                "description": "Update your Perplexity API key"
+                "description": "Update your Perplexity API key.\nTo generate Perplexity API key go to {api_key_url}"
             },
             "reconfigure": {
                 "data": {
@@ -27,7 +27,7 @@
                 "data_description": {
                     "api_key": "Perplexity API key"
                 },
-                "description": "Update your Perplexity API key"
+                "description": "Update your Perplexity API key.\nTo generate Perplexity API key go to {api_key_url}"
             },
             "user": {
                 "data": {
@@ -36,7 +36,7 @@
                 "data_description": {
                     "api_key": "Perplexity API key"
                 },
-                "description": "To generate Perplexity API key go to {api_key_url}"
+                "description": "Provide your Perplexity API key.\nTo generate Perplexity API key go to {api_key_url}"
             }
         }
     },
