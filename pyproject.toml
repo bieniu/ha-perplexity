@@ -31,6 +31,9 @@ lint.ignore = [
 [tool.ruff.lint.mccabe]
 max-complexity = 25
 
+[tool.ty.environment]
+python-version = "3.14"
+
 [tool.tox]
 legacy_tox_ini = """
 
