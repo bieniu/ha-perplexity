@@ -46,18 +46,29 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             "ai_task_data": PerplexityAITaskFlowHandler,
         }
 
-    async def _validate_input(self, user_input: dict[str, Any]) -> None:
+    async def _validate_input(self, user_input: dict[str, Any]) -> dict[str, str]:
         """Validate the user input allows us to connect."""
-        client = AsyncPerplexity(
-            api_key=user_input[CONF_API_KEY],
-            http_client=get_async_client(self.hass),
-        )
-        await client.chat.completions.create(
-            model="sonar",
-            messages=[{"role": "user", "content": "hi"}],
-            disable_search=True,
-            max_tokens=1,
-        )
+        errors: dict[str, str] = {}
+        try:
+            client = AsyncPerplexity(
+                api_key=user_input[CONF_API_KEY],
+                http_client=get_async_client(self.hass),
+            )
+            await client.chat.completions.create(
+                model="sonar",
+                messages=[{"role": "user", "content": "hi"}],
+                disable_search=True,
+                max_tokens=1,
+            )
+        except AuthenticationError:
+            errors["base"] = "invalid_auth"
+        except PerplexityError:
+            errors["base"] = "cannot_connect"
+        except Exception:  # noqa: BLE001
+            LOGGER.exception("Unexpected exception")
+            errors["base"] = "unknown"
+
+        return errors
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -66,16 +77,9 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             self._async_abort_entries_match(user_input)
-            try:
-                await self._validate_input(user_input)
-            except AuthenticationError:
-                errors["base"] = "invalid_auth"
-            except PerplexityError:
-                errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
+
+            errors = await self._validate_input(user_input)
+            if not errors:
                 return self.async_create_entry(
                     title="Perplexity",
                     data=user_input,
@@ -105,16 +109,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            try:
-                await self._validate_input(user_input)
-            except AuthenticationError:
-                errors["base"] = "invalid_auth"
-            except PerplexityError:
-                errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
+            errors = await self._validate_input(user_input)
+            if not errors:
                 return self.async_update_reload_and_abort(
                     self._get_reauth_entry(),
                     data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
@@ -133,16 +129,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            try:
-                await self._validate_input(user_input)
-            except AuthenticationError:
-                errors["base"] = "invalid_auth"
-            except PerplexityError:
-                errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
-                LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-            else:
+            errors = await self._validate_input(user_input)
+            if not errors:
                 return self.async_update_reload_and_abort(
                     self._get_reconfigure_entry(),
                     data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
