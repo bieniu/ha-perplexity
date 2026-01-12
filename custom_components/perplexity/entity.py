@@ -128,15 +128,20 @@ async def _async_prepare_files_for_prompt(
 
         for file_path, mime_type in files:
             if not file_path.exists():
-                raise HomeAssistantError(f"`{file_path}` does not exist")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="file_not_found",
+                    translation_placeholders={"file_path": file_path},
+                )
 
             if mime_type is None:
                 mime_type = guess_file_type(file_path)[0]  # noqa: PLW2901
 
             if not mime_type or not mime_type.startswith("image/"):
                 raise HomeAssistantError(
-                    "Only images are supported by the Perplexity API, "
-                    f"`{file_path}` is not an image file"
+                    translation_domain=DOMAIN,
+                    translation_key="unsupported_file_type",
+                    translation_placeholders={"file_path": file_path},
                 )
 
             base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")

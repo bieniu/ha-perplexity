@@ -66,11 +66,17 @@
         "auth_error": {
             "message": "Authentication failed for {entry}, please update your API key"
         },
+        "file_not_found": {
+            "message": "`{file_path}` does not exist"
+        },
         "no_assistant_response": {
             "message": "Last content in chat log is not an AssistantContent"
         },
         "structured_response_error": {
             "message": "Error with Perplexity structured response: {error}"
+        },
+        "unsupported_file_type": {
+            "message": "Only images are supported by the Perplexity API, `{file_path}` is not an image file"
         }
     }
 }
