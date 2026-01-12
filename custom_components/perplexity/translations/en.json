@@ -90,5 +90,15 @@
         "unsupported_file_type": {
             "message": "Only images are supported by the Perplexity API, `{file_path}` is not an image file"
         }
+    },
+    "selector": {
+        "reasoning_effort": {
+            "options": {
+                "minimal": "Minimal",
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High"
+            }
+        }
     }
 }

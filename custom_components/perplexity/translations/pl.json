@@ -90,5 +90,15 @@
         "unsupported_file_type": {
             "message": "Interfejs API Perplexity obs\u0142uguje tylko obrazy, `{file_path}` nie jest obrazem"
         }
+    },
+    "selector": {
+        "reasoning_effort": {
+            "options": {
+                "minimal": "minimalny",
+                "low": "niski",
+                "medium": "\u015bredni",
+                "high": "wysoki"
+            }
+        }
     }
 }

@@ -18,9 +18,4 @@ PERPLEXITY_MODELS = {
 
 REASONING_MODELS = {"sonar-reasoning-pro"}
 
-REASONING_EFFORT_OPTIONS = {
-    "minimal": "Minimal",
-    "low": "Low",
-    "medium": "Medium",
-    "high": "High",
-}
+REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]

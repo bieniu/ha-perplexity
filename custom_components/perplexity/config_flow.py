@@ -216,10 +216,8 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
                         CONF_REASONING_EFFORT, default=current_effort
                     ): SelectSelector(
                         SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(value=key, label=label)
-                                for key, label in REASONING_EFFORT_OPTIONS.items()
-                            ],
+                            options=REASONING_EFFORT_OPTIONS,
+                            translation_key=CONF_REASONING_EFFORT,
                             mode=SelectSelectorMode.DROPDOWN,
                         ),
                     ),
