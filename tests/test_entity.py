@@ -182,7 +182,7 @@ async def test_async_prepare_files_for_prompt_file_not_exists(
     hass: HomeAssistant,
 ) -> None:
     """Test _async_prepare_files_for_prompt with non-existent file."""
-    with pytest.raises(HomeAssistantError, match="does not exist"):
+    with pytest.raises(HomeAssistantError, match="file_not_found"):
         await _async_prepare_files_for_prompt(
             hass, [(Path("/non/existent/file.png"), "image/png")]
         )
@@ -196,7 +196,7 @@ async def test_async_prepare_files_for_prompt_non_image(
     test_file = tmp_path / "test.txt"
     test_file.write_text("test content")
 
-    with pytest.raises(HomeAssistantError, match="Only images are supported"):
+    with pytest.raises(HomeAssistantError, match="unsupported_file_type"):
         await _async_prepare_files_for_prompt(hass, [(test_file, "text/plain")])
 
 
