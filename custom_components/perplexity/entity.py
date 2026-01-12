@@ -189,7 +189,10 @@ class PerplexityEntity(Entity):
         last_content = chat_log.content[-1]
 
         # Handle attachments by adding them to the last user message
-        if last_content.role == "user" and last_content.attachments:
+        if (
+            isinstance(last_content, conversation.UserContent)
+            and last_content.attachments
+        ):
             last_message = model_args["messages"][-1]
 
             if TYPE_CHECKING:

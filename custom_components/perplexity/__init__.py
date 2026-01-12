@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
 
-from perplexity import (  # type: ignore[attr-defined]
+from perplexity import (
     AsyncPerplexity,
     AuthenticationError,
     PerplexityError,
@@ -18,7 +18,7 @@ from .const import DOMAIN
 
 PLATFORMS = [Platform.AI_TASK]
 
-type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]  # type: ignore[misc]
+type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -> bool:
