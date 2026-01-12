@@ -18,7 +18,7 @@
                 "data_description": {
                     "api_key": "Klucz API Perplexity"
                 },
-                "description": "Zaktualizuj klucz API Perplexity"
+                "description": "Zaktualizuj klucz API Perplexity.\nBy wygenerowa\u0107 klucz API id\u017a do {api_key_url}"
             },
             "reconfigure": {
                 "data": {
@@ -27,7 +27,7 @@
                 "data_description": {
                     "api_key": "Klucz API Perplexity"
                 },
-                "description": "Zaktualizuj klucz API Perplexity"
+                "description": "Zaktualizuj klucz API Perplexity.\nBy wygenerowa\u0107 klucz API id\u017a do {api_key_url}"
             },
             "user": {
                 "data": {
@@ -36,7 +36,7 @@
                 "data_description": {
                     "api_key": "Klucz API Perplexity"
                 },
-                "description": "By wygenerowa\u0107 klucz API Perplexity id\u017a do {api_key_url}"
+                "description": "Wprowad\u017a kucz API Perplexity.\nBy wygenerowa\u0107 klucz API id\u017a do {api_key_url}"
             }
         }
     },
@@ -57,6 +57,14 @@
                     "description": "Skonfiguruj nowe zadanie AI."
                 }
             }
+        }
+    },
+    "exceptions": {
+        "api_error": {
+            "message": "B\u0142\u0105d komunikacji z interfejsem API Perplexity dla {entry}: {error}"
+        },
+        "auth_error": {
+            "message": "Uwierzytelnienie nie powiod\u0142o si\u0119 dla {entry}, zaktualizuj sw\u00f3j klucz API"
         }
     }
 }
