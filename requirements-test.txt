@@ -2,7 +2,6 @@ coverage
 hassil
 home-assistant-intents
 homeassistant
-ty==0.0.11
 perplexityai==0.22.2
 pytest
 pytest-cov
@@ -11,3 +10,4 @@ pytest-homeassistant-custom-component==0.13.305
 pyturbojpeg
 ruff==0.14.10
 syrupy
+ty==0.0.11
