@@ -9,11 +9,11 @@ from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import aiofiles
 import voluptuous as vol
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_MODEL
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
@@ -116,45 +116,43 @@ async def _transform_response(
 
 
 async def _async_prepare_files_for_prompt(
-    hass: HomeAssistant, files: list[tuple[Path, str | None]]
+    files: list[tuple[Path, str | None]],
 ) -> list[dict[str, Any]]:
     """Prepare files for the prompt.
 
     Caller needs to ensure that the files are allowed.
     """
+    content: list[dict[str, Any]] = []
 
-    def prepare_files() -> list[dict[str, Any]]:
-        content: list[dict[str, Any]] = []
-
-        for file_path, mime_type in files:
-            if not file_path.exists():
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="file_not_found",
-                    translation_placeholders={"file_path": str(file_path)},
-                )
-
-            if mime_type is None:
-                mime_type = guess_file_type(file_path)[0]  # noqa: PLW2901
-
-            if not mime_type or not mime_type.startswith("image/"):
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="unsupported_file_type",
-                    translation_placeholders={"file_path": str(file_path)},
-                )
-
-            base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")
-            content.append(
-                {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:{mime_type};base64,{base64_file}"},
-                }
+    for file_path, mime_type in files:
+        if not file_path.exists():
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="file_not_found",
+                translation_placeholders={"file_path": str(file_path)},
             )
 
-        return content
+        if mime_type is None:
+            mime_type = guess_file_type(file_path)[0]  # noqa: PLW2901
 
-    return await hass.async_add_executor_job(prepare_files)
+        if not mime_type or not mime_type.startswith("image/"):
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="unsupported_file_type",
+                translation_placeholders={"file_path": str(file_path)},
+            )
+
+        async with aiofiles.open(file_path, "rb") as f:
+            file_bytes = await f.read()
+        base64_file = base64.b64encode(file_bytes).decode("utf-8")
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{base64_file}"},
+            }
+        )
+
+    return content
 
 
 class PerplexityEntity(Entity):
@@ -206,7 +204,6 @@ class PerplexityEntity(Entity):
 
             # Encode files with base64 and append them to the text prompt
             files = await _async_prepare_files_for_prompt(
-                self.hass,
                 [(a.path, a.mime_type) for a in last_content.attachments],
             )
             last_message["content"] = [

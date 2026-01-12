@@ -184,7 +184,7 @@ async def test_async_prepare_files_for_prompt_file_not_exists(
     """Test _async_prepare_files_for_prompt with non-existent file."""
     with pytest.raises(HomeAssistantError, match="file_not_found"):
         await _async_prepare_files_for_prompt(
-            hass, [(Path("/non/existent/file.png"), "image/png")]
+            [(Path("/non/existent/file.png"), "image/png")]
         )
 
 
@@ -197,7 +197,7 @@ async def test_async_prepare_files_for_prompt_non_image(
     test_file.write_text("test content")
 
     with pytest.raises(HomeAssistantError, match="unsupported_file_type"):
-        await _async_prepare_files_for_prompt(hass, [(test_file, "text/plain")])
+        await _async_prepare_files_for_prompt([(test_file, "text/plain")])
 
 
 async def test_async_prepare_files_for_prompt_success(
@@ -215,7 +215,7 @@ async def test_async_prepare_files_for_prompt_success(
     )
     test_file.write_bytes(png_data)
 
-    result = await _async_prepare_files_for_prompt(hass, [(test_file, "image/png")])
+    result = await _async_prepare_files_for_prompt([(test_file, "image/png")])
 
     assert len(result) == 1
     assert result[0]["type"] == "image_url"
@@ -237,7 +237,7 @@ async def test_async_prepare_files_for_prompt_auto_mime_type(
     test_file.write_bytes(png_data)
 
     # Pass None as mime_type to trigger auto-detection
-    result = await _async_prepare_files_for_prompt(hass, [(test_file, None)])
+    result = await _async_prepare_files_for_prompt([(test_file, None)])
 
     assert len(result) == 1
     assert result[0]["type"] == "image_url"
