@@ -22,7 +22,6 @@ from voluptuous_openapi import convert
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import StreamChunk
-from perplexity.types.chat.completion_create_params import Tool, ToolFunction
 
 from . import PerplexityConfigEntry
 from .const import DOMAIN, LOGGER
@@ -78,26 +77,6 @@ def _format_structured_output(
     return result
 
 
-def _format_tool(
-    tool: llm.Tool,
-    custom_serializer: Any,  # noqa: ANN401
-) -> Tool:
-    """Format tool specification."""
-    parameters = convert(tool.parameters, custom_serializer=custom_serializer)
-    return Tool(
-        type="function",
-        function=ToolFunction(
-            name=tool.name,
-            description=tool.description or "",
-            parameters={
-                "type": parameters.get("type", "object"),
-                "properties": parameters.get("properties", {}),
-                "required": parameters.get("required", []),
-            },
-        ),
-    )
-
-
 def _convert_content_to_chat_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
@@ -105,7 +84,6 @@ def _convert_content_to_chat_message(
     if isinstance(content, conversation.ToolResultContent):
         return {
             "role": "tool",
-            "tool_call_id": content.tool_call_id,
             "content": json.dumps(content.tool_result),
         }
 
@@ -120,29 +98,9 @@ def _convert_content_to_chat_message(
             "role": "assistant",
             "content": content.content,
         }
-        if isinstance(content, conversation.AssistantContent) and content.tool_calls:
-            result["tool_calls"] = [
-                {
-                    "type": "function",
-                    "id": tool_call.id,
-                    "function": {
-                        "name": tool_call.tool_name,
-                        "arguments": json.dumps(tool_call.tool_args),
-                    },
-                }
-                for tool_call in content.tool_calls
-            ]
         return result
     LOGGER.warning("Could not convert message to Perplexity API: %s", content)
     return None
-
-
-def _decode_tool_arguments(arguments: str) -> Any:  # noqa: ANN401
-    """Decode tool call arguments."""
-    try:
-        return json.loads(arguments)
-    except json.JSONDecodeError as err:
-        raise HomeAssistantError(f"Unexpected tool argument response: {err}") from err
 
 
 async def _transform_response(
@@ -154,20 +112,6 @@ async def _transform_response(
         "role": "assistant",
         "content": message.content if isinstance(message.content, str) else None,
     }
-    if message.tool_calls:
-        data["tool_calls"] = [
-            llm.ToolInput(
-                id=tool_call.id or "",
-                tool_name=tool_call.function.name or "" if tool_call.function else "",
-                tool_args=(
-                    _decode_tool_arguments(tool_call.function.arguments)
-                    if tool_call.function and tool_call.function.arguments
-                    else {}
-                ),
-            )
-            for tool_call in message.tool_calls
-            if tool_call.type == "function"
-        ]
     yield data
 
 
@@ -235,16 +179,6 @@ class PerplexityEntity(Entity):
         model_args: dict[str, Any] = {
             "model": self.model,
         }
-
-        tools: list[Tool] | None = None
-        if chat_log.llm_api:
-            tools = [
-                _format_tool(tool, chat_log.llm_api.custom_serializer)
-                for tool in chat_log.llm_api.tools
-            ]
-
-        if tools:
-            model_args["tools"] = tools
 
         model_args["messages"] = [
             m
