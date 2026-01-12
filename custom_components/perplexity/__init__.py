@@ -14,6 +14,8 @@ from perplexity import (  # type: ignore[attr-defined]
     PerplexityError,
 )
 
+from .const import DOMAIN
+
 PLATFORMS = [Platform.AI_TASK]
 
 type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]  # type: ignore[misc]
@@ -38,9 +40,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
             max_tokens=1,
         )
     except AuthenticationError as err:
-        raise ConfigEntryAuthFailed("Invalid API key") from err
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN,
+            translation_key="auth_error",
+            translation_placeholders={"entry": entry.title},
+        ) from err
     except PerplexityError as err:
-        raise ConfigEntryNotReady(err) from err
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="api_error",
+            translation_placeholders={"entry": entry.title, "error": str(err)},
+        ) from err
 
     entry.runtime_data = client
 

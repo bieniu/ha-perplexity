@@ -216,11 +216,22 @@ class PerplexityEntity(Entity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
                 result = await client.chat.completions.create(**model_args)
-            except AuthenticationError:
+            except AuthenticationError as err:
                 self.entry.async_start_reauth(self.hass)
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="auth_error",
+                    translation_placeholders={"entry": self.entry.title},
+                ) from err
             except PerplexityError as err:
-                LOGGER.error("Error talking to Perplexity API: %s", err)
-                raise HomeAssistantError("Error talking to Perplexity API") from err
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="api_error",
+                    translation_placeholders={
+                        "entry": self.entry.title,
+                        "error": str(err),
+                    },
+                ) from err
 
             model_args["messages"].extend(
                 [

@@ -58,5 +58,13 @@
                 }
             }
         }
+    },
+    "exceptions": {
+        "api_error": {
+            "message": "Error talking to Perplexity API for {entry}: {error}"
+        },
+        "auth_error": {
+            "message": "Authentication failed for {entry}, please update your API key"
+        }
     }
 }

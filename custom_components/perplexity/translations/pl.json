@@ -58,5 +58,13 @@
                 }
             }
         }
+    },
+    "exceptions": {
+        "api_error": {
+            "message": "B\u0142\u0105d komunikacji z interfejsem API Perplexity dla {entry}: {error}"
+        },
+        "auth_error": {
+            "message": "Uwierzytelnienie nie powiod\u0142o si\u0119 dla {entry}, zaktualizuj sw\u00f3j klucz API"
+        }
     }
 }
