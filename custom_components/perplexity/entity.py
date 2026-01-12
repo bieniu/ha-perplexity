@@ -131,7 +131,7 @@ async def _async_prepare_files_for_prompt(
                 raise HomeAssistantError(
                     translation_domain=DOMAIN,
                     translation_key="file_not_found",
-                    translation_placeholders={"file_path": file_path},
+                    translation_placeholders={"file_path": str(file_path)},
                 )
 
             if mime_type is None:
@@ -141,7 +141,7 @@ async def _async_prepare_files_for_prompt(
                 raise HomeAssistantError(
                     translation_domain=DOMAIN,
                     translation_key="unsupported_file_type",
-                    translation_placeholders={"file_path": file_path},
+                    translation_placeholders={"file_path": str(file_path)},
                 )
 
             base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")
