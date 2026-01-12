@@ -16,9 +16,7 @@ from custom_components.perplexity.entity import (
     _adjust_schema,
     _async_prepare_files_for_prompt,
     _convert_content_to_chat_message,
-    _decode_tool_arguments,
     _format_structured_output,
-    _format_tool,
 )
 
 
@@ -132,49 +130,6 @@ def test_format_structured_output_with_llm_api() -> None:
     assert result["json_schema"]["name"] == "test_name"
 
 
-def test_format_tool() -> None:
-    """Test _format_tool function."""
-    tool = MagicMock()
-    tool.name = "test_tool"
-    tool.description = "A test tool"
-    tool.parameters = vol.Schema({vol.Required("param"): str})
-
-    result = _format_tool(tool, llm.selector_serializer)
-
-    assert result["type"] == "function"
-    assert result["function"]["name"] == "test_tool"
-    assert result["function"]["description"] == "A test tool"
-    assert "parameters" in result["function"]
-
-
-def test_format_tool_without_description() -> None:
-    """Test _format_tool function without description."""
-    tool = MagicMock()
-    tool.name = "test_tool"
-    tool.description = None
-    tool.parameters = vol.Schema({})
-
-    result = _format_tool(tool, llm.selector_serializer)
-
-    assert result["function"]["description"] == ""
-
-
-def test_convert_content_tool_result() -> None:
-    """Test _convert_content_to_chat_message with ToolResultContent."""
-    content = conversation.ToolResultContent(
-        agent_id="test_agent",
-        tool_call_id="call_123",
-        tool_result={"result": "success"},
-        tool_name="test_tool",
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result["role"] == "tool"
-    assert result["tool_call_id"] == "call_123"
-    assert result["content"] == '{"result": "success"}'
-
-
 def test_convert_content_system() -> None:
     """Test _convert_content_to_chat_message with system content."""
     content = conversation.SystemContent(
@@ -212,31 +167,6 @@ def test_convert_content_assistant() -> None:
     assert result["content"] == "Hello! How can I help?"
 
 
-def test_convert_content_assistant_with_tool_calls() -> None:
-    """Test _convert_content_to_chat_message with assistant content and tool calls."""
-    content = conversation.AssistantContent(
-        agent_id="test_agent",
-        content=None,
-        tool_calls=[
-            llm.ToolInput(
-                id="call_123",
-                tool_name="test_tool",
-                tool_args={"arg": "value"},
-            ),
-        ],
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result["role"] == "assistant"
-    assert result["content"] is None
-    assert len(result["tool_calls"]) == 1
-    assert result["tool_calls"][0]["type"] == "function"
-    assert result["tool_calls"][0]["id"] == "call_123"
-    assert result["tool_calls"][0]["function"]["name"] == "test_tool"
-    assert result["tool_calls"][0]["function"]["arguments"] == '{"arg": "value"}'
-
-
 def test_convert_content_unknown_role() -> None:
     """Test _convert_content_to_chat_message with unknown role."""
     content = MagicMock()
@@ -246,19 +176,6 @@ def test_convert_content_unknown_role() -> None:
     result = _convert_content_to_chat_message(content)
 
     assert result is None
-
-
-def test_decode_tool_arguments_valid_json() -> None:
-    """Test _decode_tool_arguments with valid JSON."""
-    result = _decode_tool_arguments('{"key": "value"}')
-
-    assert result == {"key": "value"}
-
-
-def test_decode_tool_arguments_invalid_json() -> None:
-    """Test _decode_tool_arguments with invalid JSON."""
-    with pytest.raises(HomeAssistantError, match="Unexpected tool argument response"):
-        _decode_tool_arguments("invalid json")
 
 
 async def test_async_prepare_files_for_prompt_file_not_exists(
