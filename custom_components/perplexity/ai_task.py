@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from json import JSONDecodeError
-
 from homeassistant.components import ai_task, conversation
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util.json import json_loads
+from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads
 
 from custom_components.perplexity.const import DOMAIN
 
@@ -68,7 +66,7 @@ class PerplexityAITaskEntity(
             )
         try:
             data = json_loads(text)
-        except JSONDecodeError as err:
+        except JSON_DECODE_EXCEPTIONS as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="structured_response_error",
