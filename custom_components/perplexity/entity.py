@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import json
 from collections.abc import AsyncGenerator
 from mimetypes import guess_file_type
 from pathlib import Path
@@ -18,6 +17,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.json import json_dumps
 from voluptuous_openapi import convert
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
@@ -84,7 +84,7 @@ def _convert_content_to_chat_message(
     if isinstance(content, conversation.ToolResultContent):
         return {
             "role": "tool",
-            "content": json.dumps(content.tool_result),
+            "content": json_dumps(content.tool_result),
         }
 
     if content.role == "system" and content.content:

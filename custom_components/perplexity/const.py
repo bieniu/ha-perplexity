@@ -5,9 +5,6 @@ import logging
 DOMAIN = "perplexity"
 LOGGER = logging.getLogger(__package__)
 
-CONF_PROMPT = "prompt"
-CONF_RECOMMENDED = "recommended"
-
 RECOMMENDED_CHAT_MODEL = "sonar"
 
 PERPLEXITY_MODELS = {
