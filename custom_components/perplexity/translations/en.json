@@ -65,6 +65,12 @@
         },
         "auth_error": {
             "message": "Authentication failed for {entry}, please update your API key"
+        },
+        "no_assistant_response": {
+            "message": "Last content in chat log is not an AssistantContent"
+        },
+        "structured_response_error": {
+            "message": "Error with Perplexity structured response: {error}"
         }
     }
 }

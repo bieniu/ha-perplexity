@@ -65,6 +65,12 @@
         },
         "auth_error": {
             "message": "Uwierzytelnienie nie powiod\u0142o si\u0119 dla {entry}, zaktualizuj sw\u00f3j klucz API"
+        },
+        "no_assistant_response": {
+            "message": "Ostatnia tre\u015b\u0107 w dzienniku czatu nie jest tre\u015bci\u0105 AssistantContent"
+        },
+        "structured_response_error": {
+            "message": "B\u0142\u0105d w ustrukturyzowanej odpowiedzi Perplexity: {error}"
         }
     }
 }

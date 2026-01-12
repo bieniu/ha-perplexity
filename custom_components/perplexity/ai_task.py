@@ -10,6 +10,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.json import json_loads
 
+from custom_components.perplexity.const import DOMAIN
+
 from . import PerplexityConfigEntry
 from .entity import PerplexityEntity
 
@@ -53,7 +55,8 @@ class PerplexityAITaskEntity(
         last_content = chat_log.content[-1]
         if not isinstance(last_content, conversation.AssistantContent):
             raise HomeAssistantError(
-                "Last content in chat log is not an AssistantContent"
+                translation_domain=DOMAIN,
+                translation_key="no_assistant_response",
             )
 
         text = last_content.content or ""
@@ -67,7 +70,9 @@ class PerplexityAITaskEntity(
             data = json_loads(text)
         except JSONDecodeError as err:
             raise HomeAssistantError(
-                "Error with Perplexity structured response"
+                translation_domain=DOMAIN,
+                translation_key="structured_response_error",
+                translation_placeholders={"error": str(err)},
             ) from err
 
         return ai_task.GenDataTaskResult(
