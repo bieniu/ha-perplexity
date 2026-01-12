@@ -10,4 +10,5 @@ RECOMMENDED_CHAT_MODEL = "sonar"
 PERPLEXITY_MODELS = {
     "sonar": "Sonar",
     "sonar-pro": "Sonar Pro",
+    "sonar-reasoning-pro": "Sonar Reasoning Pro",
 }
