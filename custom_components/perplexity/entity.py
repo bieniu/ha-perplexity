@@ -181,6 +181,7 @@ class PerplexityEntity(Entity):
         """Generate an answer for the chat log."""
         model_args: dict[str, Any] = {
             "model": self.model,
+            "disable_search": True,
         }
 
         model_args["messages"] = [
