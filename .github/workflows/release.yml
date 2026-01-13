@@ -5,8 +5,8 @@ on:
     types: [published]
 
 jobs:
-  release:
-    name: Prepare release asset
+  publish:
+    name: Publish
     runs-on: ubuntu-latest
     permissions:
       contents: write

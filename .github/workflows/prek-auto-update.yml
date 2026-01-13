@@ -15,19 +15,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
+          activate-environment: true
           python-version: 3.14
-          cache: pip
 
-      - name: Install uv
-        run: pip install uv
+      - name: Install prek
+        run: uv pip install prek
 
-      - name: Install pre-commit
-        run: uv pip install --system prek
-
-      - name: Run pre-commit autoupdate
+      - name: Run prek auto-update
         run: prek auto-update
 
       - name: Create Pull Request
@@ -37,7 +35,5 @@ jobs:
           branch: update/prek-auto-update
           title: Auto-update prek hooks
           commit-message: Auto-update prek hooks
-          body: |
-            Update versions of tools in prek
-            configs to latest version
+          body: Update versions of tools in prek configs to latest version
           labels: dependencies

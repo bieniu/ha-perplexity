@@ -1,0 +1,43 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Lint & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          activate-environment: true
+          python-version: 3.14
+
+      - name: Install dependencies
+        run: uv pip install -r requirements-test.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Check format
+        run: ruff format --check .
+
+      - name: Check types
+        run: ty check custom_components/perplexity
+
+      - name: Run tests
+        run: |
+          pytest --timeout=30 --cov=custom_components/perplexity --cov-report=xml --error-for-skips
+          coverage report -m --fail-under=79
