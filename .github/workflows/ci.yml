@@ -39,5 +39,5 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --timeout=30 --cov=custom_components/perplexity --cov-report=term-missing --cov-report=xml --error-for-skips
-          coverage report --fail-under=79
+          pytest --timeout=30 --cov=custom_components/perplexity --cov-report=xml --error-for-skips
+          coverage report -m --fail-under=79
