@@ -16,6 +16,13 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
 
+## Features
+Perplexity integration supports:
+
+- [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
+- **Sonar**, **Sonar Pro** and **Sonar Reasoning Pro** models
+- **reasoning effort** configuration (for models supporting reasoning)
+
 ## How to debug
 
 To debug the integration add this to your `logger` configuration:
@@ -26,6 +33,7 @@ logger:
   default: warning
   logs:
     custom_components.perplexity: debug
+    perplexity: debug
 ```
 
 [releases]: https://github.com/bieniu/ha-perplexity/releases
