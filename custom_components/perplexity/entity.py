@@ -1,7 +1,5 @@
 """Base entity for Perplexity."""
 
-from __future__ import annotations
-
 import base64
 from collections.abc import AsyncGenerator
 from mimetypes import guess_file_type
