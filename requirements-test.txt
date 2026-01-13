@@ -7,8 +7,8 @@ perplexityai==0.22.2
 pytest
 pytest-cov
 pytest-error-for-skips==2.0.2
-pytest-homeassistant-custom-component==0.13.305
+pytest-homeassistant-custom-component==0.13.306
 pyturbojpeg
-ruff==0.14.10
+ruff==0.14.11
 syrupy
 ty==0.0.11
