@@ -4,6 +4,18 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      runtime:
+        patterns:
+          - "perplexityai"
+
+      dev:
+        patterns:
+          - "prek"
+          - "pytest-error-for-skips"
+          - "pytest-homeassistant-custom-component"
+          - "ruff"
+          - "ty"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
