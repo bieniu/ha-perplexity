@@ -28,6 +28,27 @@ Perplexity integration supports:
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
 - **Sonar**, **Sonar Pro** and **Sonar Reasoning Pro** models
 - **reasoning effort** configuration (for models supporting reasoning)
+- controlling **web search** option
+
+## Examples
+
+### Generating a short description of weather conditions
+
+```yaml
+action: ai_task.generate_data
+data:
+  task_name: Weather Description
+  entity_id: ai_task.sonar
+  instructions: >-
+    Based on this {{ states.weather.home }} and an image create short weather
+    description (ONLY ONE SENTENCE).
+```
+
+AI task returned:
+
+```
+The sky is overcast with dark, ragged clouds on this chilly January morning, threatening rain and a brisk wind.
+```
 
 ## How to debug
 
