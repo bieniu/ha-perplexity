@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 permissions:
   contents: read
@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Lint & test
     runs-on: ubuntu-latest
 
     steps:
