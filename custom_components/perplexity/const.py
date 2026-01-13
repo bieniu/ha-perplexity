@@ -21,3 +21,5 @@ PERPLEXITY_MODELS = {
 REASONING_MODELS = {"sonar-reasoning-pro"}
 
 REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]
+
+WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."

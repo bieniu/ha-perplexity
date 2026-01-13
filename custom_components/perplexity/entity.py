@@ -30,6 +30,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     REASONING_MODELS,
+    WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
 # Max number of back and forth with the LLM to generate a response
@@ -201,6 +202,12 @@ class PerplexityEntity(Entity):
             for content in chat_log.content
             if (m := _convert_content_to_chat_message(content))
         ]
+
+        # Add instruction to not include citations when web search is enabled
+        if web_search and model_args["messages"]:
+            first_message = model_args["messages"][0]
+            if first_message["role"] == "system":
+                first_message["content"] += f"\n{WEB_SEARCH_ADDITIONAL_INSTRUCTION}"
 
         last_content = chat_log.content[-1]
 
