@@ -6,9 +6,11 @@ DOMAIN = "perplexity"
 LOGGER = logging.getLogger(__package__)
 
 CONF_REASONING_EFFORT = "reasoning_effort"
+CONF_WEB_SEARCH = "web_search"
 
 RECOMMENDED_CHAT_MODEL = "sonar"
 DEFAULT_REASONING_EFFORT = "low"
+DEFAULT_WEB_SEARCH = False
 
 PERPLEXITY_MODELS = {
     "sonar": "Sonar",
@@ -19,3 +21,5 @@ PERPLEXITY_MODELS = {
 REASONING_MODELS = {"sonar-reasoning-pro"}
 
 REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]
+
+WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
