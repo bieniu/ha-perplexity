@@ -42,9 +42,6 @@
     },
     "config_subentries": {
         "ai_task_data": {
-            "abort": {
-                "not_reasoning_model": "Options are only available for reasoning models"
-            },
             "entry_type": "AI task",
             "initiate_flow": {
                 "user": "Add AI task"
@@ -61,9 +58,11 @@
                 },
                 "reconfigure": {
                     "data": {
+                        "web_search": "Web search",
                         "reasoning_effort": "Reasoning effort"
                     },
                     "data_description": {
+                        "web_search": "Enable web search to get up-to-date information from the internet",
                         "reasoning_effort": "Controls how much effort the model spends on reasoning"
                     },
                     "description": "Configure the AI task options"

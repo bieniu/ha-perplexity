@@ -42,9 +42,6 @@
     },
     "config_subentries": {
         "ai_task_data": {
-            "abort": {
-                "not_reasoning_model": "Opcje s\u0105 dost\u0119pne tylko dla modeli reasoning"
-            },
             "entry_type": "Zadanie AI",
             "initiate_flow": {
                 "user": "Dodaj zadanie AI"
@@ -61,9 +58,11 @@
                 },
                 "reconfigure": {
                     "data": {
+                        "web_search": "Wyszukiwanie w sieci",
                         "reasoning_effort": "Poziom rozumowania"
                     },
                     "data_description": {
+                        "web_search": "W\u0142\u0105cz wyszukiwanie w sieci, aby uzyska\u0107 aktualne informacje z internetu",
                         "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie"
                     },
                     "description": "Skonfiguruj opcje zadania AI"

@@ -25,7 +25,9 @@ from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import (
     CONF_REASONING_EFFORT,
+    CONF_WEB_SEARCH,
     DEFAULT_REASONING_EFFORT,
+    DEFAULT_WEB_SEARCH,
     DOMAIN,
     LOGGER,
     PERPLEXITY_MODELS,
@@ -191,10 +193,6 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
         subentry = self._get_reconfigure_subentry()
         model = subentry.data.get(CONF_MODEL)
 
-        # Only show options for reasoning models
-        if model not in REASONING_MODELS:
-            return self.async_abort(reason="not_reasoning_model")
-
         if user_input is not None:
             return self.async_update_and_abort(
                 self._get_entry(),
@@ -202,23 +200,28 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
                 data={**subentry.data, **user_input},
             )
 
-        current_effort = subentry.data.get(
-            CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
-        )
+        current_web_search = subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
+
+        schema_dict: dict[vol.Marker, Any] = {
+            vol.Required(CONF_WEB_SEARCH, default=current_web_search): bool,
+        }
+
+        # Add reasoning effort option only for reasoning models
+        if model in REASONING_MODELS:
+            current_effort = subentry.data.get(
+                CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
+            )
+            schema_dict[vol.Required(CONF_REASONING_EFFORT, default=current_effort)] = (
+                SelectSelector(
+                    SelectSelectorConfig(
+                        options=REASONING_EFFORT_OPTIONS,
+                        translation_key=CONF_REASONING_EFFORT,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    ),
+                )
+            )
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_REASONING_EFFORT, default=current_effort
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=REASONING_EFFORT_OPTIONS,
-                            translation_key=CONF_REASONING_EFFORT,
-                            mode=SelectSelectorMode.DROPDOWN,
-                        ),
-                    ),
-                }
-            ),
+            data_schema=vol.Schema(schema_dict),
         )

@@ -10,7 +10,11 @@ from perplexity import AuthenticationError, PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.perplexity.config_flow import PerplexityConfigFlow
-from custom_components.perplexity.const import CONF_REASONING_EFFORT, DOMAIN
+from custom_components.perplexity.const import (
+    CONF_REASONING_EFFORT,
+    CONF_WEB_SEARCH,
+    DOMAIN,
+)
 
 
 async def test_user_flow_success(
@@ -398,21 +402,22 @@ async def test_ai_task_subentry_options_flow_reasoning_model(
 
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"],
-        user_input={CONF_REASONING_EFFORT: "high"},
+        user_input={CONF_WEB_SEARCH: True, CONF_REASONING_EFFORT: "high"},
     )
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
 
-    # Verify the option was saved
+    # Verify the options were saved
     subentry = entry.subentries[subentry_id]
     assert subentry.data[CONF_REASONING_EFFORT] == "high"
+    assert subentry.data[CONF_WEB_SEARCH] is True
 
 
 async def test_ai_task_subentry_options_flow_non_reasoning_model(
     hass: HomeAssistant,
 ) -> None:
-    """Test AI task subentry options flow aborts for non-reasoning model."""
+    """Test AI task subentry options flow for non-reasoning model."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
@@ -434,7 +439,20 @@ async def test_ai_task_subentry_options_flow_non_reasoning_model(
 
     subentry_id = next(iter(entry.subentries.keys()))
 
+    # Now test reconfigure flow - should show web_search only
     result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
 
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_WEB_SEARCH: True},
+    )
+
     assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "not_reasoning_model"
+    assert result["reason"] == "reconfigure_successful"
+
+    # Verify the option was saved
+    subentry = entry.subentries[subentry_id]
+    assert subentry.data[CONF_WEB_SEARCH] is True

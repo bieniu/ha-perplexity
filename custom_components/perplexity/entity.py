@@ -24,7 +24,9 @@ from perplexity.types import StreamChunk
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
+    CONF_WEB_SEARCH,
     DEFAULT_REASONING_EFFORT,
+    DEFAULT_WEB_SEARCH,
     DOMAIN,
     LOGGER,
     REASONING_MODELS,
@@ -183,9 +185,10 @@ class PerplexityEntity(Entity):
         structure: vol.Schema | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
+        web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
         model_args: dict[str, Any] = {
             "model": self.model,
-            "disable_search": True,
+            "disable_search": not web_search,
         }
 
         if self.model in REASONING_MODELS:
