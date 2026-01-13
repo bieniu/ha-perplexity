@@ -44,10 +44,42 @@ data:
     description (ONLY ONE SENTENCE).
 ```
 
-AI task returned:
+Response:
 
 ```
 The sky is overcast with dark, ragged clouds on this chilly January morning, threatening rain and a brisk wind.
+```
+
+### Counting objects from a camera snapshot
+
+```yaml
+action: ai_task.generate_data
+data:
+  task_name: Number of cars
+  entity_id: ai_task.sonar
+  instructions: In the attached photo, count the cars in the parking lot.
+  attachments:
+    media_content_id: media-source://camera/camera.parking
+    media_content_type: application/vnd.apple.mpegurl
+    metadata:
+      title: parking
+      thumbnail: /api/camera_proxy/camera.parking
+      media_class: video
+      navigateIds:
+        - media_content_type: app
+          media_content_id: media-source://camera
+  structure:
+    car_count:
+      required: true
+      selector:
+        number:
+```
+
+Response:
+
+```yaml
+data:
+  car_count: 42
 ```
 
 ## How to debug
