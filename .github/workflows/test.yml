@@ -8,24 +8,31 @@ on:
 
 jobs:
   test:
-    name: Test with tox
+    name: Test
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
+          enable-cache: true
+          activate-environment: true
           python-version: 3.14
-          cache: pip
 
-      - name: Install uv
-        run: pip install uv
+      - name: Lint
+        run: uv run ruff check .
 
-      - name: Install dependencies
-        run: uv pip install --system tox tox-uv
+      - name: Check format
+        run: uv run ruff format --check .
 
-      - name: Test with tox
-        run: tox
+      - name: Check types
+        run: uv run ty check custom_components/perplexity
+
+      - name: Run tests
+        run: |
+          uv pip install -r requirements-test.txt
+          uv run pytest --timeout=30 --cov=custom_components/perplexity --cov-report=term-missing --cov-report=xml --error-for-skips
+          uv run coverage report --fail-under=79
