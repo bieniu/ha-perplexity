@@ -38,6 +38,7 @@ jobs:
         run: ty check custom_components/perplexity
 
       - name: Run tests
-        run: |
-          pytest --timeout=30 --cov=custom_components/perplexity --cov-report=xml --error-for-skips
-          coverage report -m --fail-under=79
+        run: pytest --timeout=30 --cov --cov-branch --cov-report=xml --error-for-skips
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
