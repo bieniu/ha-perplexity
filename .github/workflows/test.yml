@@ -22,6 +22,9 @@ jobs:
           activate-environment: true
           python-version: 3.14
 
+      - name: Install dependencies
+        run: uv pip install -r requirements-test.txt
+
       - name: Lint
         run: uv run ruff check .
 
@@ -33,6 +36,5 @@ jobs:
 
       - name: Run tests
         run: |
-          uv pip install -r requirements-test.txt
           uv run pytest --timeout=30 --cov=custom_components/perplexity --cov-report=term-missing --cov-report=xml --error-for-skips
           uv run coverage report --fail-under=79
