@@ -42,6 +42,9 @@
     },
     "config_subentries": {
         "ai_task_data": {
+            "abort": {
+                "not_reasoning_model": "Options are only available for reasoning models"
+            },
             "entry_type": "AI task",
             "initiate_flow": {
                 "user": "Add AI task"
@@ -55,6 +58,15 @@
                         "model": "The model to use for the AI task"
                     },
                     "description": "Configure the new AI task"
+                },
+                "reconfigure": {
+                    "data": {
+                        "reasoning_effort": "Reasoning effort"
+                    },
+                    "data_description": {
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning"
+                    },
+                    "description": "Configure the AI task options"
                 }
             }
         }
@@ -77,6 +89,16 @@
         },
         "unsupported_file_type": {
             "message": "Only images are supported by the Perplexity API, `{file_path}` is not an image file"
+        }
+    },
+    "selector": {
+        "reasoning_effort": {
+            "options": {
+                "minimal": "Minimal",
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High"
+            }
         }
     }
 }

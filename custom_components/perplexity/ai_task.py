@@ -1,7 +1,5 @@
 """AI Task integration for Perplexity."""
 
-from __future__ import annotations
-
 from homeassistant.components import ai_task, conversation
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError

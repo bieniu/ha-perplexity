@@ -1,7 +1,5 @@
 """Config flow for Perplexity integration."""
 
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Any
 
@@ -25,7 +23,16 @@ from homeassistant.helpers.selector import (
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN, LOGGER, PERPLEXITY_MODELS, RECOMMENDED_CHAT_MODEL
+from .const import (
+    CONF_REASONING_EFFORT,
+    DEFAULT_REASONING_EFFORT,
+    DOMAIN,
+    LOGGER,
+    PERPLEXITY_MODELS,
+    REASONING_EFFORT_OPTIONS,
+    REASONING_MODELS,
+    RECOMMENDED_CHAT_MODEL,
+)
 
 DESCRIPTION_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
 
@@ -172,6 +179,45 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
                                 mode=SelectSelectorMode.DROPDOWN,
                             ),
                         )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Handle reconfiguration of a subentry."""
+        subentry = self._get_reconfigure_subentry()
+        model = subentry.data.get(CONF_MODEL)
+
+        # Only show options for reasoning models
+        if model not in REASONING_MODELS:
+            return self.async_abort(reason="not_reasoning_model")
+
+        if user_input is not None:
+            return self.async_update_and_abort(
+                self._get_entry(),
+                subentry,
+                data={**subentry.data, **user_input},
+            )
+
+        current_effort = subentry.data.get(
+            CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
+        )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_REASONING_EFFORT, default=current_effort
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=REASONING_EFFORT_OPTIONS,
+                            translation_key=CONF_REASONING_EFFORT,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        ),
                     ),
                 }
             ),
