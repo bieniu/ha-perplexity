@@ -3,7 +3,7 @@ coverage
 hassil
 home-assistant-intents
 homeassistant
-perplexityai==0.22.2
+perplexityai==0.22.3
 pytest
 pytest-cov
 pytest-error-for-skips==2.0.2
