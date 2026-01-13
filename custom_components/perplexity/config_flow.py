@@ -202,26 +202,30 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
 
         current_web_search = subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
 
-        schema_dict: dict[vol.Marker, Any] = {
+        schema: dict[vol.Marker, Any] = {
             vol.Required(CONF_WEB_SEARCH, default=current_web_search): bool,
         }
 
         # Add reasoning effort option only for reasoning models
         if model in REASONING_MODELS:
-            current_effort = subentry.data.get(
+            current_reasoning_effort = subentry.data.get(
                 CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
             )
-            schema_dict[vol.Required(CONF_REASONING_EFFORT, default=current_effort)] = (
-                SelectSelector(
-                    SelectSelectorConfig(
-                        options=REASONING_EFFORT_OPTIONS,
-                        translation_key=CONF_REASONING_EFFORT,
-                        mode=SelectSelectorMode.DROPDOWN,
-                    ),
-                )
+            schema.update(
+                {
+                    vol.Required(
+                        CONF_REASONING_EFFORT, default=current_reasoning_effort
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=REASONING_EFFORT_OPTIONS,
+                            translation_key=CONF_REASONING_EFFORT,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        ),
+                    )
+                }
             )
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema(schema_dict),
+            data_schema=vol.Schema(schema),
         )
