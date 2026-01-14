@@ -1,4 +1,4 @@
-[![CI](https://img.shields.io/github/actions/workflow/status/bieniu/ha-perplexity/ci.yml?branch=master&label=CI&logo=github&style=flat-square)](https://github.com/bieniu/ha-perplexity/actions/workflows/ci.yml?query=branch%3Amaster)
+[![CI](https://img.shields.io/github/actions/workflow/status/bieniu/ha-perplexity/ci.yml?branch=master&label=CI&logo=github&style=popout)](https://github.com/bieniu/ha-perplexity/actions/workflows/ci.yml?query=branch%3Amaster)
 [![hassfest](https://github.com/bieniu/ha-perplexity/actions/workflows/hassfest.yml/badge.svg)](https://github.com/bieniu/ha-perplexity/actions/workflows/hassfest.yml)
 [![GitHub Release][releases-shield]][releases]
 [![GitHub All Releases][downloads-total-shield]][releases]
