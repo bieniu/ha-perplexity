@@ -46,7 +46,8 @@ jobs:
             check-yaml \
             check-json \
             check-toml \
-            mixed-line-ending
+            mixed-line-ending \
+            --all-files
 
       - name: Run tests
         run: pytest --timeout=30 --cov --cov-branch --cov-report=xml --error-for-skips
