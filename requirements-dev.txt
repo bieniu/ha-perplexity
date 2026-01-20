@@ -5,6 +5,6 @@ perplexityai==0.22.3
 prek==0.2.28
 pytest-error-for-skips==2.0.2
 pytest-homeassistant-custom-component==0.13.306
-ruff==0.14.11
 pyturbojpeg
+ruff==0.14.11
 ty==0.0.11
