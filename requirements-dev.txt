@@ -1,3 +1,4 @@
+aiofiles>=24.0.0
 perplexityai==0.22.3
 prek==0.2.28
 pytest-error-for-skips==2.0.2
