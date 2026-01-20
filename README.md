@@ -102,10 +102,7 @@ logger:
 ```bash
 git clone https://github.com/bieniu/ha-perplexity.git
 cd ha-perplexity
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements-dev.txt
-prek install
+scripts/setup-local-env.sh
 ```
 
 [releases]: https://github.com/bieniu/ha-perplexity/releases
