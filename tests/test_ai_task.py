@@ -1,6 +1,8 @@
 """Tests for the Perplexity AI Task entity."""
 
-from unittest.mock import MagicMock, patch
+from collections.abc import Callable
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import voluptuous as vol
@@ -55,13 +57,12 @@ async def test_ai_task_generate_data_without_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data without structure."""
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Test response"
-    mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create.return_value = mock_response
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("Test response")
+    )
 
     result = await ai_task.async_generate_data(
         hass,
@@ -77,13 +78,12 @@ async def test_ai_task_generate_data_with_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data with structure."""
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = '{"key": "value"}'
-    mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create.return_value = mock_response
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream('{"key": "value"}')
+    )
 
     result = await ai_task.async_generate_data(
         hass,
@@ -100,15 +100,16 @@ async def test_ai_task_generate_data_invalid_json(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data with invalid JSON response."""
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "invalid json"
-    mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create.return_value = mock_response
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("invalid json")
+    )
 
-    with pytest.raises(HomeAssistantError, match="Error with Perplexity structured"):
+    with pytest.raises(
+        HomeAssistantError, match="Error with Perplexity structured response"
+    ):
         await ai_task.async_generate_data(
             hass,
             task_name="Test task",
@@ -122,13 +123,12 @@ async def test_ai_task_web_search_disabled_by_default(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task has web search disabled by default."""
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Test response"
-    mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create.return_value = mock_response
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("Test response")
+    )
 
     await ai_task.async_generate_data(
         hass,
@@ -144,6 +144,7 @@ async def test_ai_task_web_search_disabled_by_default(
 async def test_ai_task_web_search_enabled(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task with web search enabled."""
     entry = MockConfigEntry(
@@ -169,11 +170,9 @@ async def test_ai_task_web_search_enabled(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Test response with web search"
-    mock_response.choices[0].message.tool_calls = None
-    mock_perplexity_client.chat.completions.create.return_value = mock_response
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("Test response with web search")
+    )
 
     result = await ai_task.async_generate_data(
         hass,

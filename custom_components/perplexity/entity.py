@@ -1,7 +1,7 @@
 """Base entity for Perplexity."""
 
 import base64
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterable
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -122,6 +122,15 @@ async def _transform_response(
     yield data
 
 
+async def _transform_stream(
+    stream: AsyncIterable[StreamChunk],
+) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
+    """Transform the Perplexity stream to delta content."""
+    async for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+            yield {"role": "assistant", "content": chunk.choices[0].delta.content}
+
+
 async def _async_prepare_files_for_prompt(
     files: list[tuple[Path, str | None]],
 ) -> list[dict[str, Any]]:
@@ -190,6 +199,7 @@ class PerplexityEntity(Entity):
         model_args: dict[str, Any] = {
             "model": self.model,
             "disable_search": not web_search,
+            "stream": True,
         }
 
         if self.model in REASONING_MODELS:
@@ -240,7 +250,7 @@ class PerplexityEntity(Entity):
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
-                result = await client.chat.completions.create(**model_args)
+                stream = await client.chat.completions.create(**model_args)
             except AuthenticationError as err:
                 self.entry.async_start_reauth(self.hass)
                 raise HomeAssistantError(
@@ -262,7 +272,7 @@ class PerplexityEntity(Entity):
                 [
                     msg
                     async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, _transform_response(result)
+                        self.entity_id, _transform_stream(stream)
                     )
                     if (msg := _convert_content_to_chat_message(content))
                 ]

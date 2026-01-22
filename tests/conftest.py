@@ -1,6 +1,6 @@
 """Tests helpers for the Perplexity integration."""
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -87,6 +87,31 @@ async def mock_setup_entry(
 def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     """Return snapshot assertion fixture."""
     return snapshot.use_extension(SnapshotExtension)
+
+
+async def mock_stream_response(content: str) -> AsyncGenerator[MagicMock]:
+    """Create a mock stream response."""
+    mock_chunk = MagicMock()
+    mock_chunk.choices = [MagicMock()]
+    mock_chunk.choices[0].delta = MagicMock()
+    mock_chunk.choices[0].delta.content = content
+    yield mock_chunk
+
+
+def create_mock_stream(content: str) -> AsyncGenerator[MagicMock]:
+    """Create a mock stream for the given content."""
+
+    async def _stream() -> AsyncGenerator[MagicMock]:
+        async for chunk in mock_stream_response(content):
+            yield chunk
+
+    return _stream()
+
+
+@pytest.fixture
+def mock_stream() -> Callable[[str], AsyncGenerator[MagicMock]]:
+    """Mock stream fixture."""
+    return create_mock_stream
 
 
 class SnapshotExtension(AmberSnapshotExtension):
