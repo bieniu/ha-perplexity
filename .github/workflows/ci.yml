@@ -9,12 +9,13 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  VIRTUAL_ENV: venv
+
 jobs:
   test:
     name: Lint & test
     runs-on: ubuntu-latest
-    env:
-      VIRTUAL_ENV: venv
 
     steps:
       - name: Check out repository
