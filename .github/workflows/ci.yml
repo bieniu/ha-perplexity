@@ -13,6 +13,8 @@ jobs:
   test:
     name: Lint & test
     runs-on: ubuntu-latest
+    env:
+      VIRTUAL_ENV: venv
 
     steps:
       - name: Check out repository
@@ -24,7 +26,6 @@ jobs:
           enable-cache: true
           activate-environment: true
           python-version: 3.14
-          virtualenv-name: venv
 
       - name: Install dependencies
         run: uv pip install -r requirements-dev.txt
