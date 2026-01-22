@@ -22,24 +22,24 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          activate-environment: true
           python-version: 3.14
+          virtualenv-name: venv
 
       - name: Install dependencies
         run: uv pip install -r requirements-dev.txt
 
       - name: Lint
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Check format
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
       - name: Check types
-        run: ty check custom_components/perplexity
+        run: uv run ty check custom_components/perplexity
 
       - name: Run prek
         run: |
-          prek run \
+          uv run prek run \
             end-of-file-fixer \
             trailing-whitespace \
             check-added-large-files \
@@ -50,7 +50,7 @@ jobs:
             --all-files
 
       - name: Run tests
-        run: pytest --timeout=30 --cov --cov-branch --cov-report=xml --error-for-skips
+        run: uv run pytest --timeout=30 --cov --cov-branch --cov-report=xml --error-for-skips
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
