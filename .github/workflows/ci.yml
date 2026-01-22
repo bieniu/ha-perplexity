@@ -9,9 +9,6 @@ on:
   pull_request:
     branches: [master]
 
-env:
-  VIRTUAL_ENV: venv
-
 jobs:
   test:
     name: Lint & test
