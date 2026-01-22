@@ -1,7 +1,7 @@
 aiofiles>=24.0.0
 hassil
 home-assistant-intents
-perplexityai==0.22.3
+perplexityai==0.23.0
 prek==0.2.30
 pytest-error-for-skips==2.0.2
 pytest-homeassistant-custom-component==0.13.307
