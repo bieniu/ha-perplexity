@@ -33,4 +33,3 @@ max-complexity = 25
 
 [tool.ty.environment]
 python-version = "3.14"
-python = "./venv"
