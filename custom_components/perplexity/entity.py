@@ -126,9 +126,14 @@ async def _transform_stream(
     stream: AsyncIterable[StreamChunk],
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform the Perplexity stream to delta content."""
+    first = True
     async for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
-            yield {"role": "assistant", "content": chunk.choices[0].delta.content}
+        if chunk.choices and chunk.choices[0].delta:
+            if first:
+                yield {"role": "assistant"}
+                first = False
+            if chunk.choices[0].delta.content:
+                yield {"content": chunk.choices[0].delta.content}
 
 
 async def _async_prepare_files_for_prompt(
