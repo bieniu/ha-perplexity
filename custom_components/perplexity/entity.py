@@ -110,18 +110,6 @@ def _convert_content_to_chat_message(
     return None
 
 
-async def _transform_response(
-    response: StreamChunk,
-) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
-    """Transform the Perplexity response to a ChatLog format."""
-    message = response.choices[0].message
-    data: conversation.AssistantContentDeltaDict = {
-        "role": "assistant",
-        "content": message.content if isinstance(message.content, str) else None,
-    }
-    yield data
-
-
 async def _transform_stream(
     stream: AsyncIterable[StreamChunk],
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
