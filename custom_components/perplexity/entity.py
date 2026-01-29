@@ -15,7 +15,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.json import json_dumps
 from voluptuous_openapi import convert
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
@@ -88,12 +87,6 @@ def _convert_content_to_chat_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
     """Convert any native chat message for this agent to the native format."""
-    if isinstance(content, conversation.ToolResultContent):
-        return {
-            "role": "tool",
-            "content": json_dumps(content.tool_result),
-        }
-
     if content.role == "system" and content.content:
         return {"role": "system", "content": content.content}
 
