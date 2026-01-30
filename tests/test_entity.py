@@ -6,12 +6,14 @@ from unittest.mock import MagicMock
 import pytest
 import voluptuous as vol
 from homeassistant.components import ai_task, conversation
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
-from perplexity import PerplexityError
+from perplexity import AuthenticationError, PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.perplexity.const import DOMAIN
 from custom_components.perplexity.entity import (
     _adjust_schema,
     _async_prepare_files_for_prompt,
@@ -261,3 +263,35 @@ async def test_ai_task_api_error(
             entity_id="ai_task.sonar",
             instructions="Test instructions",
         )
+
+
+async def test_ai_task_authentication_error(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test AI task with authentication error."""
+    mock_perplexity_client.chat.completions.create.side_effect = AuthenticationError(
+        "Invalid API key", response=MagicMock(), body=None
+    )
+
+    with pytest.raises(HomeAssistantError, match="Authentication failed"):
+        await ai_task.async_generate_data(
+            hass,
+            task_name="Test task",
+            entity_id="ai_task.sonar",
+            instructions="Test instructions",
+        )
+
+    assert mock_setup_entry.state is ConfigEntryState.LOADED
+
+    flows = hass.config_entries.flow.async_progress()
+    assert len(flows) == 1
+
+    flow = flows[0]
+    assert flow.get("step_id") == "reauth_confirm"
+    assert flow.get("handler") == DOMAIN
+
+    assert "context" in flow
+    assert flow["context"].get("source") == SOURCE_REAUTH
+    assert flow["context"].get("entry_id") == mock_setup_entry.entry_id

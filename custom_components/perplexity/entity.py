@@ -1,7 +1,7 @@
 """Base entity for Perplexity."""
 
 import base64
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterable
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -15,7 +15,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.json import json_dumps
 from voluptuous_openapi import convert
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
@@ -88,12 +87,6 @@ def _convert_content_to_chat_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
     """Convert any native chat message for this agent to the native format."""
-    if isinstance(content, conversation.ToolResultContent):
-        return {
-            "role": "tool",
-            "content": json_dumps(content.tool_result),
-        }
-
     if content.role == "system" and content.content:
         return {"role": "system", "content": content.content}
 
@@ -110,16 +103,18 @@ def _convert_content_to_chat_message(
     return None
 
 
-async def _transform_response(
-    response: StreamChunk,
+async def _transform_stream(
+    stream: AsyncIterable[StreamChunk],
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
-    """Transform the Perplexity response to a ChatLog format."""
-    message = response.choices[0].message
-    data: conversation.AssistantContentDeltaDict = {
-        "role": "assistant",
-        "content": message.content if isinstance(message.content, str) else None,
-    }
-    yield data
+    """Transform the Perplexity stream to delta content."""
+    first = True
+    async for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta:
+            if first:
+                yield {"role": "assistant"}
+                first = False
+            if chunk.choices[0].delta.content:
+                yield {"content": chunk.choices[0].delta.content}
 
 
 async def _async_prepare_files_for_prompt(
@@ -190,6 +185,7 @@ class PerplexityEntity(Entity):
         model_args: dict[str, Any] = {
             "model": self.model,
             "disable_search": not web_search,
+            "stream": True,
         }
 
         if self.model in REASONING_MODELS:
@@ -240,7 +236,7 @@ class PerplexityEntity(Entity):
 
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
-                result = await client.chat.completions.create(**model_args)
+                stream = await client.chat.completions.create(**model_args)
             except AuthenticationError as err:
                 self.entry.async_start_reauth(self.hass)
                 raise HomeAssistantError(
@@ -262,7 +258,7 @@ class PerplexityEntity(Entity):
                 [
                     msg
                     async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, _transform_response(result)
+                        self.entity_id, _transform_stream(stream)
                     )
                     if (msg := _convert_content_to_chat_message(content))
                 ]
