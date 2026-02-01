@@ -6,15 +6,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
 
-from perplexity import (
-    AsyncPerplexity,
-    AuthenticationError,
-    PerplexityError,
-)
+from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import DOMAIN
 
-PLATFORMS = [Platform.AI_TASK]
+PLATFORMS = [Platform.AI_TASK, Platform.CONVERSATION]
 
 type PerplexityConfigEntry = ConfigEntry[AsyncPerplexity]
 

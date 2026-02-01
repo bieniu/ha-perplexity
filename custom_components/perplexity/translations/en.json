@@ -47,15 +47,6 @@
                 "user": "Add AI task"
             },
             "step": {
-                "user": {
-                    "data": {
-                        "model": "Model"
-                    },
-                    "data_description": {
-                        "model": "The model to use for the AI task"
-                    },
-                    "description": "Configure the new AI task"
-                },
                 "reconfigure": {
                     "data": {
                         "web_search": "Web search",
@@ -66,6 +57,38 @@
                         "reasoning_effort": "Controls how much effort the model spends on reasoning"
                     },
                     "description": "Configure the AI task options"
+                },
+                "user": {
+                    "data": {
+                        "model": "Model"
+                    },
+                    "data_description": {
+                        "model": "The model to use for the AI task"
+                    },
+                    "description": "Configure the new AI task"
+                }
+            }
+        },
+        "conversation": {
+            "abort": {
+                "entry_not_loaded": "The Perplexity integration is not loaded. Please ensure it is set up correctly before adding a conversation agent."
+            },
+            "entry_type": "Conversation agent",
+            "initiate_flow": {
+                "user": "Add conversation agent"
+            },
+            "step": {
+                "init": {
+                    "data": {
+                        "llm_hass_api": "Control Home Assistant",
+                        "model": "Model",
+                        "prompt": "Instructions"
+                    },
+                    "data_description": {
+                        "model": "The model to use for the conversation agent",
+                        "prompt": "Instruct how the LLM should respond. This can be a template."
+                    },
+                    "description": "Configure the conversation agent"
                 }
             }
         }

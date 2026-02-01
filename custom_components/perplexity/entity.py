@@ -113,8 +113,14 @@ async def _transform_stream(
             if first:
                 yield {"role": "assistant"}
                 first = False
-            if chunk.choices[0].delta.content:
-                yield {"content": chunk.choices[0].delta.content}
+            delta_content = chunk.choices[0].delta.content
+            if delta_content:
+                # Content may be str or a complex type - ensure we have str
+                if isinstance(delta_content, str):
+                    yield {"content": delta_content}
+                else:
+                    # Handle potential list of content chunks
+                    yield {"content": str(delta_content)}
 
 
 async def _async_prepare_files_for_prompt(
@@ -179,6 +185,7 @@ class PerplexityEntity(Entity):
         chat_log: conversation.ChatLog,
         structure_name: str | None = None,
         structure: vol.Schema | None = None,
+        response_format: dict[str, Any] | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
         web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
@@ -231,6 +238,8 @@ class PerplexityEntity(Entity):
             model_args["response_format"] = _format_structured_output(
                 structure_name or "response", structure, chat_log.llm_api
             )
+        elif response_format:
+            model_args["response_format"] = response_format
 
         client: AsyncPerplexity = self.entry.runtime_data
 
