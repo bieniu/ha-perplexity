@@ -68,6 +68,29 @@
                     "description": "Skonfiguruj opcje zadania AI"
                 }
             }
+        },
+        "conversation": {
+            "abort": {
+                "entry_not_loaded": "Integracja Perplexity nie jest za\u0142adowana. Przed dodaniem agenta konwersacji upewnij si\u0119, \u017ce jest poprawnie skonfigurowana."
+            },
+            "entry_type": "Agent konwersacji",
+            "initiate_flow": {
+                "user": "Dodaj agenta konwersacji"
+            },
+            "step": {
+                "init": {
+                    "data": {
+                        "llm_hass_api": "Kontroluj Home Assistant",
+                        "model": "Model",
+                        "prompt": "Instrukcje"
+                    },
+                    "data_description": {
+                        "model": "Model, u\u017cywany na potrzeby agenta konwersacji.",
+                        "prompt": "Poinstruuj LLM jak powinien reagowa\u0107. Mo\u017ce to by\u0107 szablon."
+                    },
+                    "description": "Skonfiguruj agenta konwersacji"
+                }
+            }
         }
     },
     "exceptions": {

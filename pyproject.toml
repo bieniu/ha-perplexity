@@ -8,6 +8,9 @@ target-version = "py314"
 lint.select = ["ALL"]
 
 lint.ignore = [
+    "ARG001",   # Unused function argument
+    "ARG002",   # Unused method argument
+    "ARG003",   # Unused class method argument
     "COM812",   # Trailing comma missing
     "D203",     # 1 blank line required before class docstring
     "D213",     # Multi-line docstring summary should start at the second line
