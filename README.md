@@ -27,6 +27,7 @@ To generate API key go to [https://www.perplexity.ai/account/api/keys](https://w
 ## Features
 Perplexity integration supports:
 
+- [Conversation](https://www.home-assistant.io/integrations/conversation/) platform
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
 - **Sonar**, **Sonar Pro** and **Sonar Reasoning Pro** models
 - **reasoning effort** configuration (for models supporting reasoning)
