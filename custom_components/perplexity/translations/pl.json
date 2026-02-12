@@ -42,6 +42,9 @@
     },
     "config_subentries": {
         "ai_task_data": {
+            "abort": {
+                "reconfigure_successful": "Ponowna konfiguracja si\u0119 powiod\u0142a"
+            },
             "entry_type": "Zadanie AI",
             "initiate_flow": {
                 "user": "Dodaj zadanie AI"
@@ -71,7 +74,8 @@
         },
         "conversation": {
             "abort": {
-                "entry_not_loaded": "Integracja Perplexity nie jest za\u0142adowana. Przed dodaniem agenta konwersacji upewnij si\u0119, \u017ce jest poprawnie skonfigurowana."
+                "entry_not_loaded": "Integracja Perplexity nie jest za\u0142adowana. Przed dodaniem agenta konwersacji upewnij si\u0119, \u017ce jest poprawnie skonfigurowana.",
+                "reconfigure_successful": "Ponowna konfiguracja si\u0119 powiod\u0142a"
             },
             "entry_type": "Agent konwersacji",
             "initiate_flow": {
