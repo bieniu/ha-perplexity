@@ -42,6 +42,9 @@
     },
     "config_subentries": {
         "ai_task_data": {
+            "abort": {
+                "reconfigure_successful": "Re-configuration was successful"
+            },
             "entry_type": "AI task",
             "initiate_flow": {
                 "user": "Add AI task"
@@ -71,7 +74,8 @@
         },
         "conversation": {
             "abort": {
-                "entry_not_loaded": "The Perplexity integration is not loaded. Please ensure it is set up correctly before adding a conversation agent."
+                "entry_not_loaded": "The Perplexity integration is not loaded. Please ensure it is set up correctly before adding a conversation agent.",
+                "reconfigure_successful": "Re-configuration was successful"
             },
             "entry_type": "Conversation agent",
             "initiate_flow": {
