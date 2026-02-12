@@ -172,34 +172,29 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         llm_api_ids: list[str],
     ) -> conversation.ConversationResult:
         """Handle conversation with custom action parsing."""
-        # Build system prompt with action instructions and entity context
-        system_prompt_parts: list[str] = []
+        prompt_parts: list[str] = []
 
         # Add base instructions
-        system_prompt_parts.append(llm.DEFAULT_INSTRUCTIONS_PROMPT)
-
-        # Add user prompt if provided
-        if user_prompt:
-            system_prompt_parts.append(user_prompt)
+        prompt_parts.append(user_prompt or llm.DEFAULT_INSTRUCTIONS_PROMPT)
 
         # Add extra system prompt if provided
         if user_input.extra_system_prompt:
-            system_prompt_parts.append(user_input.extra_system_prompt)
+            prompt_parts.append(user_input.extra_system_prompt)
 
         # Add action instructions
-        system_prompt_parts.append(ACTION_INSTRUCTIONS)
+        prompt_parts.append(ACTION_INSTRUCTIONS)
 
         # Generate and add entity context
         entity_context = await self._async_generate_entity_context(llm_api_ids)
         if entity_context:
-            system_prompt_parts.append(f"\nAvailable entities:\n{entity_context}")
+            prompt_parts.append(f"\nAvailable entities:\n{entity_context}")
 
-        system_prompt = "\n".join(system_prompt_parts)
+        prompt = "\n".join(prompt_parts)
 
         # Add system prompt to chat log
         chat_log.content.insert(
             0,
-            conversation.SystemContent(content=system_prompt),
+            conversation.SystemContent(content=prompt),
         )
 
         # Call API with structured JSON response format
