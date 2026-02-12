@@ -10,6 +10,8 @@
 # Perplexity
 Perplexity integration for Home Assistant.
 
+<img width="1032" height="742" alt="obraz" src="https://github.com/user-attachments/assets/5b286300-ce24-46c6-86e2-e214cabc044d" />
+
 ## Configuration
 
 To configure integration in Home Assistant, go to **Settings** >> **Devices & services** >> **Add integration** >> **Perplexity** or use My Home Assistant link.
