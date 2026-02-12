@@ -8,7 +8,6 @@ from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import llm
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.json import json_dumps
 from homeassistant.helpers.llm import _get_exposed_entities
@@ -172,32 +171,26 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         llm_api_ids: list[str],
     ) -> conversation.ConversationResult:
         """Handle conversation with custom action parsing."""
-        prompt_parts: list[str] = []
+        extra_parts: list[str] = []
 
-        # Add base instructions
-        prompt_parts.append(user_prompt or llm.DEFAULT_INSTRUCTIONS_PROMPT)
-
-        # Add extra system prompt if provided
         if user_input.extra_system_prompt:
-            prompt_parts.append(user_input.extra_system_prompt)
+            extra_parts.append(user_input.extra_system_prompt)
+        extra_parts.append(ACTION_INSTRUCTIONS)
 
-        # Add action instructions
-        prompt_parts.append(ACTION_INSTRUCTIONS)
-
-        # Generate and add entity context
         entity_context = await self._async_generate_entity_context(llm_api_ids)
         if entity_context:
-            prompt_parts.append(f"\nAvailable entities:\n{entity_context}")
+            extra_parts.append(f"\nAvailable entities:\n{entity_context}")
 
-        prompt = "\n".join(prompt_parts)
+        try:
+            await chat_log.async_provide_llm_data(
+                user_input.as_llm_context(DOMAIN),
+                None,
+                user_prompt,
+                "\n".join(extra_parts),
+            )
+        except conversation.ConverseError as err:
+            return err.as_conversation_result()
 
-        # Add system prompt to chat log
-        chat_log.content.insert(
-            0,
-            conversation.SystemContent(content=prompt),
-        )
-
-        # Call API with structured JSON response format
         await self._async_handle_chat_log(
             chat_log,
             response_format=ACTION_RESPONSE_SCHEMA,
