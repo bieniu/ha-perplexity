@@ -8,7 +8,6 @@ from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.json import json_dumps
@@ -266,28 +265,12 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             action.data,
         )
 
-        try:
-            service_data: dict[str, Any] = {"entity_id": action.target}
-            if action.data:
-                service_data.update(action.data)
-            await self.hass.services.async_call(
-                action.domain,
-                action.service,
-                service_data,
-                blocking=True,
-            )
-        except HomeAssistantError as err:
-            LOGGER.warning(
-                "Failed to execute action %s.%s on %s: %s",
-                action.domain,
-                action.service,
-                action.target,
-                err,
-            )
-        except Exception:  # noqa: BLE001
-            LOGGER.exception(
-                "Unexpected error executing action %s.%s on %s",
-                action.domain,
-                action.service,
-                action.target,
-            )
+        service_data: dict[str, Any] = {"entity_id": action.target}
+        if action.data:
+            service_data.update(action.data)
+        await self.hass.services.async_call(
+            action.domain,
+            action.service,
+            service_data,
+            blocking=True,
+        )
