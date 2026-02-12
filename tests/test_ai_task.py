@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import voluptuous as vol
 from homeassistant.components import ai_task
-from homeassistant.const import CONF_MODEL
+from homeassistant.const import CONF_MODEL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -19,14 +19,25 @@ from custom_components.perplexity.const import CONF_WEB_SEARCH, DOMAIN
 
 async def test_ai_task_entity(
     hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
     snapshot: SnapshotAssertion,
 ) -> None:
     """Test AI task entity."""
+    with (
+        patch(
+            "custom_components.perplexity.AsyncPerplexity",
+            return_value=mock_perplexity_client,
+        ),
+        patch("custom_components.perplexity.PLATFORMS", [Platform.AI_TASK]),
+    ):
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
     entity_registry = er.async_get(hass)
 
     entity_entries = er.async_entries_for_config_entry(
-        entity_registry, mock_setup_entry.entry_id
+        entity_registry, mock_config_entry.entry_id
     )
 
     assert len(entity_entries) == 1
