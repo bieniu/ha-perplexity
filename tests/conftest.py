@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from homeassistant.components.conversation.const import DOMAIN as CONVERSATION_DOMAIN
-from homeassistant.const import CONF_API_KEY, CONF_MODEL
+from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -14,7 +14,7 @@ from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.amber import AmberSnapshotExtension
 from syrupy.location import PyTestLocation
 
-from custom_components.perplexity.const import DOMAIN
+from custom_components.perplexity.const import CONF_PROMPT, DOMAIN
 
 
 @pytest.fixture(autouse=True)
@@ -45,6 +45,17 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
                 "subentry_type": "ai_task_data",
                 "title": "Sonar",
                 "subentry_id": "ulid-ai-task",
+                "unique_id": None,
+            },
+            {
+                "data": {
+                    CONF_LLM_HASS_API: ["assist"],
+                    CONF_MODEL: "sonar",
+                    CONF_PROMPT: "instruction",
+                },
+                "subentry_type": "conversation",
+                "title": "Sonar",
+                "subentry_id": "ulid-conversation",
                 "unique_id": None,
             },
         ],

@@ -6,14 +6,13 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads
 
-from custom_components.perplexity.const import DOMAIN
-
 from . import PerplexityConfigEntry
+from .const import DOMAIN
 from .entity import PerplexityEntity
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001
+    hass: HomeAssistant,
     config_entry: PerplexityConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:

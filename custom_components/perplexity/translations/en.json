@@ -47,6 +47,17 @@
                 "user": "Add AI task"
             },
             "step": {
+                "reconfigure": {
+                    "data": {
+                        "reasoning_effort": "Reasoning effort",
+                        "web_search": "Web search"
+                    },
+                    "data_description": {
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
+                        "web_search": "Enable web search to get up-to-date information from the internet"
+                    },
+                    "description": "Configure the AI task options"
+                },
                 "user": {
                     "data": {
                         "model": "Model"
@@ -55,17 +66,33 @@
                         "model": "The model to use for the AI task"
                     },
                     "description": "Configure the new AI task"
-                },
-                "reconfigure": {
+                }
+            }
+        },
+        "conversation": {
+            "abort": {
+                "entry_not_loaded": "The Perplexity integration is not loaded. Please ensure it is set up correctly before adding a conversation agent."
+            },
+            "entry_type": "Conversation agent",
+            "initiate_flow": {
+                "user": "Add conversation agent"
+            },
+            "step": {
+                "init": {
                     "data": {
-                        "web_search": "Web search",
-                        "reasoning_effort": "Reasoning effort"
+                        "llm_hass_api": "Control Home Assistant",
+                        "model": "Model",
+                        "prompt": "Instructions",
+                        "reasoning_effort": "Reasoning effort",
+                        "web_search": "Web search"
                     },
                     "data_description": {
-                        "web_search": "Enable web search to get up-to-date information from the internet",
-                        "reasoning_effort": "Controls how much effort the model spends on reasoning"
+                        "model": "The model to use for the conversation agent",
+                        "prompt": "Instruct how the LLM should respond. This can be a template.",
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
+                        "web_search": "Enable web search to get up-to-date information from the internet"
                     },
-                    "description": "Configure the AI task options"
+                    "description": "Configure the conversation agent"
                 }
             }
         }

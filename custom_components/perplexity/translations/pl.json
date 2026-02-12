@@ -58,14 +58,41 @@
                 },
                 "reconfigure": {
                     "data": {
-                        "web_search": "Wyszukiwanie w sieci",
-                        "reasoning_effort": "Poziom rozumowania"
+                        "reasoning_effort": "Poziom rozumowania",
+                        "web_search": "Wyszukiwanie w sieci"
                     },
                     "data_description": {
-                        "web_search": "W\u0142\u0105cz wyszukiwanie w sieci, aby uzyska\u0107 aktualne informacje z internetu",
-                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie"
+                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie",
+                        "web_search": "W\u0142\u0105cz wyszukiwanie w sieci, aby uzyska\u0107 aktualne informacje z internetu"
                     },
                     "description": "Skonfiguruj opcje zadania AI"
+                }
+            }
+        },
+        "conversation": {
+            "abort": {
+                "entry_not_loaded": "Integracja Perplexity nie jest za\u0142adowana. Przed dodaniem agenta konwersacji upewnij si\u0119, \u017ce jest poprawnie skonfigurowana."
+            },
+            "entry_type": "Agent konwersacji",
+            "initiate_flow": {
+                "user": "Dodaj agenta konwersacji"
+            },
+            "step": {
+                "init": {
+                    "data": {
+                        "llm_hass_api": "Kontroluj Home Assistant",
+                        "model": "Model",
+                        "prompt": "Instrukcje",
+                        "reasoning_effort": "Poziom rozumowania",
+                        "web_search": "Wyszukiwanie w sieci"
+                    },
+                    "data_description": {
+                        "model": "Model, u\u017cywany na potrzeby agenta konwersacji.",
+                        "prompt": "Poinstruuj LLM jak powinien reagowa\u0107. Mo\u017ce to by\u0107 szablon.",
+                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie",
+                        "web_search": "W\u0142\u0105cz wyszukiwanie w sieci, aby uzyska\u0107 aktualne informacje z internetu"
+                    },
+                    "description": "Skonfiguruj agenta konwersacji"
                 }
             }
         }
