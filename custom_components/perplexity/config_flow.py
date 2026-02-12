@@ -299,40 +299,63 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                 api for api in suggested_llm_apis if api in valid_api_ids
             ]
 
+        model = self.options.get(CONF_MODEL, RECOMMENDED_CHAT_MODEL)
+
+        schema: dict[vol.Marker, Any] = {
+            vol.Required(
+                CONF_MODEL,
+                default=model,
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value=model_id, label=name)
+                        for model_id, name in PERPLEXITY_MODELS.items()
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            vol.Optional(
+                CONF_PROMPT,
+                description={
+                    "suggested_value": self.options.get(
+                        CONF_PROMPT,
+                        RECOMMENDED_CONVERSATION_OPTIONS[CONF_PROMPT],
+                    )
+                },
+            ): TemplateSelector(),
+            vol.Optional(
+                CONF_LLM_HASS_API,
+                default=self.options.get(
+                    CONF_LLM_HASS_API,
+                    RECOMMENDED_CONVERSATION_OPTIONS[CONF_LLM_HASS_API],
+                ),
+            ): SelectSelector(SelectSelectorConfig(options=hass_apis, multiple=True)),
+            vol.Required(
+                CONF_WEB_SEARCH,
+                default=self.options.get(
+                    CONF_WEB_SEARCH,
+                    RECOMMENDED_CONVERSATION_OPTIONS[CONF_WEB_SEARCH],
+                ),
+            ): bool,
+        }
+
+        if model in REASONING_MODELS:
+            schema[
+                vol.Required(
+                    CONF_REASONING_EFFORT,
+                    default=self.options.get(
+                        CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
+                    ),
+                )
+            ] = SelectSelector(
+                SelectSelectorConfig(
+                    options=REASONING_EFFORT_OPTIONS,
+                    translation_key=CONF_REASONING_EFFORT,
+                    mode=SelectSelectorMode.DROPDOWN,
+                ),
+            )
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_MODEL,
-                        default=self.options.get(CONF_MODEL, RECOMMENDED_CHAT_MODEL),
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(value=model_id, label=name)
-                                for model_id, name in PERPLEXITY_MODELS.items()
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        ),
-                    ),
-                    vol.Optional(
-                        CONF_PROMPT,
-                        description={
-                            "suggested_value": self.options.get(
-                                CONF_PROMPT,
-                                RECOMMENDED_CONVERSATION_OPTIONS[CONF_PROMPT],
-                            )
-                        },
-                    ): TemplateSelector(),
-                    vol.Optional(
-                        CONF_LLM_HASS_API,
-                        default=self.options.get(
-                            CONF_LLM_HASS_API,
-                            RECOMMENDED_CONVERSATION_OPTIONS[CONF_LLM_HASS_API],
-                        ),
-                    ): SelectSelector(
-                        SelectSelectorConfig(options=hass_apis, multiple=True)
-                    ),
-                }
-            ),
+            data_schema=vol.Schema(schema),
         )

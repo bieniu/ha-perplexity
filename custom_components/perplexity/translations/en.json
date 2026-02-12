@@ -49,12 +49,12 @@
             "step": {
                 "reconfigure": {
                     "data": {
-                        "web_search": "Web search",
-                        "reasoning_effort": "Reasoning effort"
+                        "reasoning_effort": "Reasoning effort",
+                        "web_search": "Web search"
                     },
                     "data_description": {
-                        "web_search": "Enable web search to get up-to-date information from the internet",
-                        "reasoning_effort": "Controls how much effort the model spends on reasoning"
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
+                        "web_search": "Enable web search to get up-to-date information from the internet"
                     },
                     "description": "Configure the AI task options"
                 },
@@ -82,11 +82,15 @@
                     "data": {
                         "llm_hass_api": "Control Home Assistant",
                         "model": "Model",
-                        "prompt": "Instructions"
+                        "prompt": "Instructions",
+                        "reasoning_effort": "Reasoning effort",
+                        "web_search": "Web search"
                     },
                     "data_description": {
                         "model": "The model to use for the conversation agent",
-                        "prompt": "Instruct how the LLM should respond. This can be a template."
+                        "prompt": "Instruct how the LLM should respond. This can be a template.",
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
+                        "web_search": "Enable web search to get up-to-date information from the internet"
                     },
                     "description": "Configure the conversation agent"
                 }

@@ -32,6 +32,7 @@ WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
 RECOMMENDED_CONVERSATION_OPTIONS = {
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
+    CONF_WEB_SEARCH: DEFAULT_WEB_SEARCH,
 }
 
 # JSON schema for structured action response
