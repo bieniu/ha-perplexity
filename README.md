@@ -10,7 +10,7 @@
 # Perplexity
 Perplexity integration for Home Assistant.
 
-<img width="1044" height="585" alt="obraz" src="https://github.com/user-attachments/assets/67a37ebb-6726-490a-a91f-82e14d997abc" />
+<img width="1032" height="742" alt="obraz" src="https://github.com/user-attachments/assets/5b286300-ce24-46c6-86e2-e214cabc044d" />
 
 ## Installation
 
