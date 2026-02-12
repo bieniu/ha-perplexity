@@ -1,7 +1,7 @@
 """Base entity for Perplexity."""
 
 import base64
-from collections.abc import AsyncGenerator, AsyncIterable
+from collections.abc import AsyncGenerator, AsyncIterable, Callable
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -186,6 +186,11 @@ class PerplexityEntity(Entity):
         structure_name: str | None = None,
         structure: vol.Schema | None = None,
         response_format: dict[str, Any] | None = None,
+        stream_transform: Callable[
+            [AsyncIterable[StreamChunk]],
+            AsyncGenerator[conversation.AssistantContentDeltaDict],
+        ]
+        | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
         web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
@@ -263,11 +268,12 @@ class PerplexityEntity(Entity):
                     },
                 ) from err
 
+            transform = stream_transform or _transform_stream
             model_args["messages"].extend(
                 [
                     msg
                     async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, _transform_stream(stream)
+                        self.entity_id, transform(stream)
                     )
                     if (msg := _convert_content_to_chat_message(content))
                 ]

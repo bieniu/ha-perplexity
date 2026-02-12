@@ -1,6 +1,7 @@
 """Conversation platform for Perplexity integration."""
 
 import re
+from collections.abc import AsyncGenerator, AsyncIterable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -12,6 +13,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.json import json_dumps
 from homeassistant.helpers.llm import _get_exposed_entities
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads_object
+
+from perplexity.types import StreamChunk
 
 from . import PerplexityConfigEntry
 from .const import (
@@ -191,27 +194,38 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         except conversation.ConverseError as err:
             return err.as_conversation_result()
 
+        # Buffer the stream and parse JSON so only text is visible to the user
+        parsed_results: list[ParsedResponse] = []
+
+        async def _buffer_and_parse(
+            stream: AsyncIterable[StreamChunk],
+        ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
+            """Buffer the full stream, parse JSON, yield only text content."""
+            full_content = ""
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta:
+                    delta_content = chunk.choices[0].delta.content
+                    if delta_content:
+                        full_content += (
+                            delta_content
+                            if isinstance(delta_content, str)
+                            else str(delta_content)
+                        )
+            parsed = _parse_json_response(full_content)
+            parsed_results.append(parsed)
+            yield {"role": "assistant"}
+            if parsed.content:
+                yield {"content": parsed.content}
+
         await self._async_handle_chat_log(
             chat_log,
             response_format=ACTION_RESPONSE_SCHEMA,
+            stream_transform=_buffer_and_parse,
         )
 
-        # Parse and execute actions from the response
-        last_content = chat_log.content[-1]
-        if (
-            isinstance(last_content, conversation.AssistantContent)
-            and last_content.content
-        ):
-            parsed = _parse_json_response(last_content.content)
-
-            # Update the response content to just the text
-            chat_log.content[-1] = conversation.AssistantContent(
-                agent_id=last_content.agent_id,
-                content=parsed.content,
-            )
-
-            # Execute actions
-            for action in parsed.actions:
+        # Execute actions from the parsed response
+        if parsed_results:
+            for action in parsed_results[0].actions:
                 await self._async_execute_action(action)
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
