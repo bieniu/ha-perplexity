@@ -108,14 +108,14 @@ IMPORTANT: You MUST respond with a valid JSON object in this exact format:
 If no action is needed, set "actions" to null or an empty array [].
 
 Common domains and services:
-- light: turn_on, turn_off, toggle (data: brightness, color_temp, rgb_color)
-- switch: turn_on, turn_off, toggle
-- climate: set_temperature, set_hvac_mode (data: temperature, hvac_mode)
-- cover: open_cover, close_cover, set_cover_position
-- media_player: media_play, media_pause, volume_set (data: volume_level)
+- light: turn_on (data: brightness, color_temp, rgb_color), turn_off
+- switch: turn_on, turn_off
+- climate: turn_on, turn_off, set_temperature (data: temperature)
+- cover: open_cover, close_cover, set_cover_position (data: position [0-100])
+- media_player: media_play, media_pause, volume_set (data: volume_level [0-1])
 - script: turn_on (to run scripts)
 - scene: turn_on (to activate scenes)
-- fan: turn_on, turn_off, set_percentage (data: percentage)
+- fan: turn_on, turn_off, set_percentage (data: percentage [0-100])
 
 Always use the entity_id as the target.
 If data is not needed, set it to null.
