@@ -45,7 +45,9 @@ class PerplexityAITaskEntity(
         chat_log: conversation.ChatLog,
     ) -> ai_task.GenDataTaskResult:
         """Handle a generate data task."""
-        await self._async_handle_chat_log(chat_log, task.name, task.structure)
+        await self._async_handle_chat_log(
+            chat_log, task.name, task.structure, max_iterations=1000
+        )
 
         last_content = chat_log.content[-1]
         if not isinstance(last_content, conversation.AssistantContent):

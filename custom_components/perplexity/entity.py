@@ -191,6 +191,7 @@ class PerplexityEntity(Entity):
             AsyncGenerator[conversation.AssistantContentDeltaDict],
         ]
         | None = None,
+        max_iterations: int = MAX_TOOL_ITERATIONS,
     ) -> None:
         """Generate an answer for the chat log."""
         web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
@@ -248,7 +249,7 @@ class PerplexityEntity(Entity):
 
         client: AsyncPerplexity = self.entry.runtime_data
 
-        for _iteration in range(MAX_TOOL_ITERATIONS):
+        for _iteration in range(max_iterations):
             try:
                 stream = await client.chat.completions.create(**model_args)
             except AuthenticationError as err:
