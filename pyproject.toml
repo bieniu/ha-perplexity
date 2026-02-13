@@ -17,6 +17,7 @@ lint.ignore = [
     "EM101",    # Exception must not use a string literal, assign to variable first
     "EM102",    # Exception must not use an f-string literal, assign to variable first
     "FBT001",   # Boolean positional arg in function definition
+    "PLR0913",  # Too many arguments in function definition
     "PLR0915",  # Too many statements
     "TC001",    # Move application import into a type-checking block
     "TC002",    # Move third-party import into a type-checking block
