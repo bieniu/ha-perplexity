@@ -181,9 +181,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             extra_parts.append(user_input.extra_system_prompt)
         extra_parts.append(ACTION_INSTRUCTIONS)
 
-        entity_context = await self._async_generate_entity_context(llm_api_ids)
-        if entity_context:
-            extra_parts.append(f"\n{entity_context}")
+        extra_parts.append(await self._async_generate_entity_context(llm_api_ids))
 
         try:
             await chat_log.async_provide_llm_data(
