@@ -11,7 +11,8 @@ from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.json import json_dumps
-from homeassistant.helpers.llm import _get_exposed_entities
+from homeassistant.helpers.llm import NO_ENTITIES_PROMPT, _get_exposed_entities
+from homeassistant.util import yaml as yaml_util
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads_object
 
 from perplexity.types import StreamChunk
@@ -182,7 +183,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
         entity_context = await self._async_generate_entity_context(llm_api_ids)
         if entity_context:
-            extra_parts.append(f"\nAvailable entities:\n{entity_context}")
+            extra_parts.append(f"\n{entity_context}")
 
         try:
             await chat_log.async_provide_llm_data(
@@ -232,30 +233,17 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
     async def _async_generate_entity_context(self, llm_api_ids: list[str]) -> str:
         """Generate entity context for the system prompt."""
-        try:
-            exposed_entities_data = _get_exposed_entities(
-                self.hass, conversation.DOMAIN, include_state=True
-            )
+        exposed_entities = _get_exposed_entities(
+            self.hass, conversation.DOMAIN, include_state=True
+        )["entities"]
 
-            # Build entity list from exposed entities
-            entity_lines: list[str] = []
-            entities = exposed_entities_data.get("entities", {})
+        if not exposed_entities:
+            return NO_ENTITIES_PROMPT
 
-            for entity_id, entity_info in list(entities.items())[:100]:
-                state = self.hass.states.get(entity_id)
-                if state:
-                    names = entity_info.get("names", [entity_id])
-                    name = names[0] if names else entity_id
-                    areas = entity_info.get("areas", [])
-                    area_str = f" (area: {areas[0]})" if areas else ""
-                    entity_lines.append(
-                        f"- {entity_id}: {name}, state: {state.state}{area_str}"
-                    )
-
-            return "\n".join(entity_lines)
-        except Exception:  # noqa: BLE001
-            LOGGER.debug("Failed to generate entity context", exc_info=True)
-            return ""
+        return (
+            "An overview of the areas and the devices in this smart home:\n"
+            + yaml_util.dump(list(exposed_entities.values()))
+        )
 
     async def _async_execute_action(self, action: ParsedAction) -> None:
         """Execute a parsed action."""
