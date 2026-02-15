@@ -240,7 +240,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
         return (
             "An overview of the areas and the devices in this smart home:\n"
-            + yaml_util.dump(list(exposed_entities.values()))
+            + yaml_util.dump(exposed_entities)
         )
 
     async def _async_execute_action(self, action: ParsedAction) -> None:
