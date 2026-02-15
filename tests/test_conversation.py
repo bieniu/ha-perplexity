@@ -137,6 +137,23 @@ async def test_conversation_with_actions(
     # Verify the response text was extracted from JSON
     assert "turned on" in result.response.speech["plain"]["speech"].lower()
 
+    # Verify chat arguments
+    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
+    assert call_args["model"] == "sonar"
+    assert call_args["disable_search"] is True
+    assert call_args["stream"] is True
+
+    messages = call_args["messages"]
+    assert (
+        "light.living_room:\n  names: living room\n  domain: light\n  state: 'off'"
+        in messages[0]["content"]
+    )
+    assert messages[1] == {"role": "user", "content": "Turn on the living room light"}
+    assert messages[2] == {
+        "role": "assistant",
+        "content": "I've turned on the living room light for you.",
+    }
+
 
 async def test_conversation_with_actions_and_data(
     hass: HomeAssistant,
