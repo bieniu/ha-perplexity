@@ -87,6 +87,9 @@ def _convert_content_to_chat_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
     """Convert any native chat message for this agent to the native format."""
+    if TYPE_CHECKING:
+        assert not isinstance(content, conversation.ToolResultContent)
+
     if content.role == "system" and content.content:
         return {"role": "system", "content": content.content}
 
