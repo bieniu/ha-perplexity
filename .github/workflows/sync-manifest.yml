@@ -1,0 +1,45 @@
+name: Sync manifest.json
+
+on:
+  pull_request:
+    paths:
+      - "requirements-dev.txt"
+
+jobs:
+  sync:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync perplexityai version to manifest.json
+        run: |
+          # Extract version from requirements-dev.txt
+          VERSION=$(grep -oP 'perplexityai==\K[0-9.]+' requirements-dev.txt)
+
+          if [ -n "$VERSION" ]; then
+            echo "Found perplexityai version: $VERSION"
+
+            # Update manifest.json
+            sed -i "s/perplexityai==[0-9.]*/perplexityai==$VERSION/" custom_components/perplexity/manifest.json
+
+            # Check if there are changes
+            if git diff --quiet custom_components/perplexity/manifest.json; then
+              echo "No changes needed in manifest.json"
+            else
+              echo "Updating manifest.json with version $VERSION"
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add custom_components/perplexity/manifest.json
+              git commit -m "Sync perplexityai version to manifest.json"
+              git push
+            fi
+          else
+            echo "perplexityai not found in requirements-dev.txt"
+          fi
