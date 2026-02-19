@@ -1,4 +1,5 @@
 version: 2
+enable-beta-ecosystems: true
 updates:
   - package-ecosystem: "pip"
     directory: "/"
@@ -8,7 +9,6 @@ updates:
       runtime:
         patterns:
           - "perplexityai"
-
       dev:
         patterns:
           - "prek"
@@ -17,6 +17,10 @@ updates:
           - "ruff"
           - "ty"
   - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
