@@ -47,7 +47,6 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 
   <img width="607" height="421" alt="obraz" src="https://github.com/user-attachments/assets/aae705c7-59cd-4709-9ba8-cf20061dcb97" />
 
-
 ## Features
 Perplexity integration supports:
 
