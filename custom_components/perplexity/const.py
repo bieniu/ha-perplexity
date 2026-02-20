@@ -73,10 +73,24 @@ ACTION_RESPONSE_SCHEMA: dict[str, Any] = {
                             },
                             "data": {
                                 "type": ["object", "null"],
-                                "description": "Additional service data parameters",
+                                "description": ("Additional service data parameters"),
+                            },
+                            "delay_seconds": {
+                                "type": ["number", "null"],
+                                "description": (
+                                    "Delay in seconds before executing this "
+                                    "action. Use null or 0 for immediate "
+                                    "execution"
+                                ),
                             },
                         },
-                        "required": ["domain", "service", "target", "data"],
+                        "required": [
+                            "domain",
+                            "service",
+                            "target",
+                            "data",
+                            "delay_seconds",
+                        ],
                         "additionalProperties": False,
                     },
                 },
@@ -100,12 +114,30 @@ IMPORTANT: You MUST respond with a valid JSON object in this exact format:
             "domain": "light",
             "service": "turn_on",
             "target": "light.living_room",
-            "data": {"brightness": 255}
+            "data": {"brightness": 255},
+            "delay_seconds": null
         }
     ]
 }
 
 If no action is needed, set "actions" to null or an empty array [].
+
+Delayed actions:
+- Use "delay_seconds" to schedule an action after a certain time.
+- Set to null or 0 for immediate execution.
+- When the user says "turn on the light for 5 minutes", create TWO actions:
+  1. An immediate turn_on action (delay_seconds: null)
+  2. A delayed turn_off action (delay_seconds: 300)
+- Example: "turn on the fan for 30 minutes" =>
+  [{"domain": "fan", "service": "turn_on", "target": "fan.bedroom",
+    "data": null, "delay_seconds": null},
+   {"domain": "fan", "service": "turn_off", "target": "fan.bedroom",
+    "data": null, "delay_seconds": 1800}]
+- Example: "turn off the light in 10 minutes" =>
+  [{"domain": "light", "service": "turn_off",
+    "target": "light.living_room",
+    "data": null, "delay_seconds": 600}]
+- Convert time units: 1 minute = 60, 1 hour = 3600.
 
 Common domains and services:
 - climate: turn_on, turn_off, set_temperature (data: temperature)

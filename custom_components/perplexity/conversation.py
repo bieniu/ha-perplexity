@@ -3,13 +3,15 @@
 import re
 from collections.abc import AsyncGenerator, AsyncIterable
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, Literal
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.json import json_dumps
 from homeassistant.helpers.llm import NO_ENTITIES_PROMPT, _get_exposed_entities
 from homeassistant.util import yaml as yaml_util
@@ -36,11 +38,13 @@ class ParsedAction:
     service: str
     target: str
     data: dict[str, Any] = field(default_factory=dict)
+    delay_seconds: float | None = None
 
     def __str__(self) -> str:
         """Return string representation."""
         data_str = json_dumps(self.data) if self.data else "{}"
-        return f"{self.domain}.{self.service} -> {self.target} ({data_str})"
+        delay_str = f" [delay={self.delay_seconds}s]" if self.delay_seconds else ""
+        return f"{self.domain}.{self.service} -> {self.target} ({data_str}){delay_str}"
 
 
 @dataclass
@@ -92,12 +96,17 @@ def _parse_json_response(response_text: str) -> ParsedResponse:
                 and isinstance(service, str)
                 and isinstance(target, str)
             ):
+                raw_delay = action_data.get("delay_seconds")
+                delay_seconds: float | None = None
+                if isinstance(raw_delay, (int, float)) and raw_delay > 0:
+                    delay_seconds = float(raw_delay)
                 actions.append(
                     ParsedAction(
                         domain=domain,
                         service=service,
                         target=target,
                         data=raw_data if isinstance(raw_data, dict) else {},
+                        delay_seconds=delay_seconds,
                     )
                 )
 
@@ -132,6 +141,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             self._attr_supported_features = (
                 conversation.ConversationEntityFeature.CONTROL
             )
+        self._scheduled_actions: list[CALLBACK_TYPE] = []
 
     @property
     def supported_languages(self) -> list[str] | Literal["*"]:
@@ -244,7 +254,23 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         )
 
     async def _async_execute_action(self, action: ParsedAction) -> None:
-        """Execute a parsed action."""
+        """Execute a parsed action, optionally with a delay."""
+        if action.delay_seconds:
+            LOGGER.debug(
+                "Scheduling action: %s.%s on %s with data %s after %s seconds",
+                action.domain,
+                action.service,
+                action.target,
+                action.data,
+                action.delay_seconds,
+            )
+            self._schedule_delayed_action(action)
+            return
+
+        await self._async_call_action(action)
+
+    async def _async_call_action(self, action: ParsedAction) -> None:
+        """Call a Home Assistant service for the given action."""
         LOGGER.debug(
             "Executing action: %s.%s on %s with data %s",
             action.domain,
@@ -262,3 +288,32 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             service_data,
             blocking=True,
         )
+
+    def _schedule_delayed_action(self, action: ParsedAction) -> None:
+        """Schedule an action to execute after a delay."""
+
+        async def _delayed_callback(_now: datetime) -> None:
+            """Execute the delayed action."""
+            LOGGER.debug(
+                "Executing delayed action: %s.%s on %s",
+                action.domain,
+                action.service,
+                action.target,
+            )
+            await self._async_call_action(action)
+
+        if TYPE_CHECKING:
+            assert action.delay_seconds is not None
+
+        cancel: CALLBACK_TYPE = async_call_later(
+            self.hass,
+            timedelta(seconds=action.delay_seconds),
+            _delayed_callback,
+        )
+        self._scheduled_actions.append(cancel)
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel all scheduled actions when entity is removed."""
+        for cancel in self._scheduled_actions:
+            cancel()
+        self._scheduled_actions.clear()
