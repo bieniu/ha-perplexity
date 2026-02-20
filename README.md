@@ -28,6 +28,8 @@ To generate API key go to [https://www.perplexity.ai/account/api/keys](https://w
 
 Now you can add Perplexity conversation agent or AI task configuration.
 
+<img width="1031" height="116" alt="obraz" src="https://github.com/user-attachments/assets/a8ef5247-93d8-4ff7-9186-0136bc1eeb8f" />
+
 To configure Perplexity as a conversation agent for you Voice assistant:
 
 - go to **Settings** >> **Voice assistants** or use My Home Assistant link [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
