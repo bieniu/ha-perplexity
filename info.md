@@ -12,6 +12,7 @@ Perplexity integration for Home Assistant.
 
 <img width="1032" height="742" alt="obraz" src="https://github.com/user-attachments/assets/5b286300-ce24-46c6-86e2-e214cabc044d" />
 
+
 ## Configuration
 
 To configure integration in Home Assistant, go to **Settings** >> **Devices & services** >> **Add integration** >> **Perplexity** or use My Home Assistant link.
@@ -19,6 +20,27 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=perplexity)
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
+
+Now you can add Perplexity conversation agent or AI task configuration.
+
+<img width="1031" height="116" alt="obraz" src="https://github.com/user-attachments/assets/a8ef5247-93d8-4ff7-9186-0136bc1eeb8f" />
+
+To configure Perplexity as a conversation agent for you Voice assistant:
+
+- Go to **Settings** >> **Voice assistants** or use My Home Assistant link.
+
+  [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
+- Select **Add assistant**.
+- Enter the assistant's name and select one of the Perplexity models as the **Conversation agent**.
+- Now you can customize your conversation agent settings.
+
+  <img width="606" height="554" alt="obraz" src="https://github.com/user-attachments/assets/94dc1193-9f60-49ed-b6a6-eb376405b3bf" />
+- If you enable **Web search** consider providing the agent with your smart home's location information. This will help the agent accurately answer questions about the weather forecast, for example.
+
+  <img width="539" height="694" alt="obraz" src="https://github.com/user-attachments/assets/ae41d1e1-2d21-42d7-b7af-28d83770be50" />
+- You can use the Perplexity AI task for AI suggestions in the Home Assistant interface. Go to **Settings** >> **General**.
+
+  <img width="607" height="421" alt="obraz" src="https://github.com/user-attachments/assets/aae705c7-59cd-4709-9ba8-cf20061dcb97" />
 
 ## Features
 Perplexity integration supports:
