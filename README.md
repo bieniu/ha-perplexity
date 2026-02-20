@@ -41,6 +41,7 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 
 > [!IMPORTANT]
 > If you enable **Web search** consider providing the agent with your smart home's location information. This will help the agent accurately answer questions about the weather forecast, for example.
+> 
 > <img width="539" height="694" alt="obraz" src="https://github.com/user-attachments/assets/ae41d1e1-2d21-42d7-b7af-28d83770be50" />
 
 ## Features
