@@ -33,16 +33,17 @@ Now you can add Perplexity conversation agent or AI task configuration.
 
 To configure Perplexity as a conversation agent for you Voice assistant:
 
-- go to **Settings** >> **Voice assistants** or use My Home Assistant link
-  [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
-- select **Add assistant**
-- enter the assistant's name and select one of the Perplexity models as the **Conversation agent**
-- now you can customize your conversation agent settings <img width="606" height="554" alt="obraz" src="https://github.com/user-attachments/assets/94dc1193-9f60-49ed-b6a6-eb376405b3bf" />
+- Go to **Settings** >> **Voice assistants** or use My Home Assistant link.
 
-> [!IMPORTANT]
-> If you enable **Web search** consider providing the agent with your smart home's location information. This will help the agent accurately answer questions about the weather forecast, for example.
-> 
-> <img width="539" height="694" alt="obraz" src="https://github.com/user-attachments/assets/ae41d1e1-2d21-42d7-b7af-28d83770be50" />
+  [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
+- Select **Add assistant**.
+- Enter the assistant's name and select one of the Perplexity models as the **Conversation agent**.
+- Now you can customize your conversation agent settings.
+
+  <img width="606" height="554" alt="obraz" src="https://github.com/user-attachments/assets/94dc1193-9f60-49ed-b6a6-eb376405b3bf" />
+- If you enable **Web search** consider providing the agent with your smart home's location information. This will help the agent accurately answer questions about the weather forecast, for example.
+  
+  <img width="539" height="694" alt="obraz" src="https://github.com/user-attachments/assets/ae41d1e1-2d21-42d7-b7af-28d83770be50" />
 
 ## Features
 Perplexity integration supports:
