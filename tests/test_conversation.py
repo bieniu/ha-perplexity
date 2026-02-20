@@ -10,7 +10,10 @@ from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import intent
 from homeassistant.helpers.json import json_dumps
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import CONF_PROMPT, CONF_WEB_SEARCH, DOMAIN
@@ -63,10 +66,13 @@ async def test_conversation_entity(
             entity_entry_dict.pop(item)
         assert entity_entry_dict == snapshot(name=f"{entity_entry.entity_id}-entry")
 
-        state = hass.states.get(entity_entry.entity_id)._as_dict
+        state = hass.states.get(entity_entry.entity_id)
+        assert state is not None
+
+        state_dict = state._as_dict
         for item in ("context", "last_changed", "last_reported", "last_updated"):
-            state.pop(item)
-        assert state == snapshot(name=f"{entity_entry.entity_id}-state")
+            state_dict.pop(item)
+        assert state_dict == snapshot(name=f"{entity_entry.entity_id}-state")
 
 
 async def test_conversation_without_actions(
@@ -405,3 +411,55 @@ async def test_conversation_extra_system_prompt(
     )
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+
+async def test_conversation_with_delayed_action(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_setup_entry: MockConfigEntry,
+    mock_stream: MagicMock,
+    service_calls: list,
+) -> None:
+    """Test conversation with action that includes delayed execution."""
+    hass.states.async_set("light.living_room", "on")
+
+    json_response = json_dumps(
+        {
+            "response": "I'll turn off the living room light for 5 minutes.",
+            "actions": [
+                {
+                    "domain": "light",
+                    "service": "turn_off",
+                    "target": "light.living_room",
+                    "data": None,
+                    "delay_seconds": 300,
+                }
+            ],
+        }
+    )
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream(json_response)
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "Turn off the living room light for 5 minutes",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+    # No immediate actions
+    assert len(service_calls) == 0
+
+    # Fire the timer
+    async_fire_time_changed(hass, fire_all=True)
+    await hass.async_block_till_done()
+
+    # Delayed action executed
+    assert len(service_calls) == 1
+    assert service_calls[0].domain == "light"
+    assert service_calls[0].service == "turn_off"
+    assert service_calls[0].data.get("entity_id") == "light.living_room"
