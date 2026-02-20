@@ -31,6 +31,7 @@ Now you can add Perplexity conversation agent or AI task configuration.
 <img width="1031" height="116" alt="obraz" src="https://github.com/user-attachments/assets/a8ef5247-93d8-4ff7-9186-0136bc1eeb8f" />
 
 
+
 To configure Perplexity as a conversation agent for you Voice assistant:
 
 - Go to **Settings** >> **Voice assistants** or use My Home Assistant link.
