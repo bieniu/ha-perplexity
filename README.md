@@ -14,7 +14,9 @@ Perplexity integration for Home Assistant.
 
 ## Installation
 
-You can install this integration manually or via [HACS](https://hacs.xyz) if you add the repository to the custom repository list (**three dot menu** >> **Custom repositories**)
+You can install this integration manually or via [HACS](https://hacs.xyz).
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=bieniu&repository=ha-perplexity&category=integration)
 
 ## Configuration
 
@@ -23,6 +25,15 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=perplexity)
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
+
+Now you can add Perplexity conversation agent or AI task configuration.
+
+To configure Perplexity as a conversation agent for you Voice assistant:
+
+- go to **Settings** >> **Voice assistants** or use My Home Assistant link [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
+- select **Add assistant**
+- enter the assistant's name and select one of the Perplexity models as the **Conversation agent**
+- now you can customize your conversation agent settings
 
 ## Features
 Perplexity integration supports:
