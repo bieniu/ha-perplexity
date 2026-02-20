@@ -43,6 +43,10 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 - If you enable **Web search** consider providing the agent with your smart home's location information. This will help the agent accurately answer questions about the weather forecast, for example.
   
   <img width="539" height="694" alt="obraz" src="https://github.com/user-attachments/assets/ae41d1e1-2d21-42d7-b7af-28d83770be50" />
+- You can use the Perplexity AI task for AI suggestions in the Home Assistant interface. Go to **Settings** >> **General**.
+
+  <img width="607" height="421" alt="obraz" src="https://github.com/user-attachments/assets/aae705c7-59cd-4709-9ba8-cf20061dcb97" />
+
 
 ## Features
 Perplexity integration supports:
