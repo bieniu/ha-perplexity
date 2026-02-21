@@ -1,5 +1,6 @@
 version: 2
 enable-beta-ecosystems: true
+
 updates:
   - package-ecosystem: "pip"
     directory: "/"
@@ -12,15 +13,24 @@ updates:
       dev:
         patterns:
           - "prek"
-          - "pytest-error-for-skips"
-          - "pytest-homeassistant-custom-component"
+          - "pytest"
+          - "pytest-*"
           - "ruff"
           - "ty"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      ci:
+        patterns: ["*"]
+
+
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      pre-commit:
+        patterns: ["*"]
