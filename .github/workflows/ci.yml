@@ -73,3 +73,5 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          override_commit: ${{ github.event.pull_request.head.sha || github.sha }}
+          override_branch: ${{ github.head_ref || github.ref_name }}
