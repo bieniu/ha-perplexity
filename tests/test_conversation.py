@@ -150,10 +150,15 @@ async def test_conversation_with_actions(
     assert call_args["stream"] is True
 
     messages = call_args["messages"]
+    assert "script: {}" in messages[0]["content"]
+    assert "calendar: {}" in messages[0]["content"]
     assert (
-        "light.living_room:\n  names: living room\n  domain: light\n  state: 'off'"
-        in messages[0]["content"]
-    )
+        "entities:\n"
+        "  light.living_room:\n"
+        "    names: living room\n"
+        "    domain: light\n"
+        "    state: 'off'"
+    ) in messages[0]["content"]
     assert messages[1] == {"role": "user", "content": "Turn on the living room light"}
     assert messages[2] == {
         "role": "assistant",
