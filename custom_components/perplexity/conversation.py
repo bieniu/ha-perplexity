@@ -243,7 +243,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         """Generate entity context for the system prompt."""
         exposed_entities = _get_exposed_entities(
             self.hass, conversation.DOMAIN, include_state=True
-        )["entities"]
+        )
 
         if not exposed_entities:
             return NO_ENTITIES_PROMPT
