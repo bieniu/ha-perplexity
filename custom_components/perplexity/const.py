@@ -105,58 +105,32 @@ ACTION_RESPONSE_SCHEMA: dict[str, Any] = {
 
 # Action instructions for the system prompt
 ACTION_INSTRUCTIONS = """
-You can control Home Assistant devices by including actions in your response.
-When the user asks to control a device, include the appropriate action.
+Control Home Assistant devices by including actions in your response.
 
-IMPORTANT: You MUST respond with a valid JSON object in this exact format:
-{
-    "response": "Your text response to the user",
-    "actions": [
-        {
-            "domain": "light",
-            "service": "turn_on",
-            "target": "light.living_room",
-            "data": {"brightness": 255},
-            "delay_seconds": null
-        }
-    ]
-}
+Respond with JSON: {"response":"<text>","actions":[<action>,...]|null}
+Action format: {"domain":"<str>","service":"<str>","target":"<entity_id>",\
+"data":<obj>|null,"delay_seconds":<num>|null}
 
-If no action is needed, set "actions" to null or an empty array [].
+delay_seconds: null/0=immediate. For timed requests, use two actions:
+"turn on fan for 30min" => turn_on(delay:null) + turn_off(delay:1800)
+"turn off light in 10min" => turn_off(delay:600)
+Time: 1min=60s, 1h=3600s.
 
-Delayed actions:
-- Use "delay_seconds" to schedule an action after a certain time.
-- Set to null or 0 for immediate execution.
-- When the user says "turn on the light for 5 minutes", create TWO actions:
-  1. An immediate turn_on action (delay_seconds: null)
-  2. A delayed turn_off action (delay_seconds: 300)
-- Example: "turn on the fan for 30 minutes" =>
-  [{"domain": "fan", "service": "turn_on", "target": "fan.bedroom",
-    "data": null, "delay_seconds": null},
-   {"domain": "fan", "service": "turn_off", "target": "fan.bedroom",
-    "data": null, "delay_seconds": 1800}]
-- Example: "turn off the light in 10 minutes" =>
-  [{"domain": "light", "service": "turn_off",
-    "target": "light.living_room",
-    "data": null, "delay_seconds": 600}]
-- Convert time units: 1 minute = 60, 1 hour = 3600.
+Domains/services (data params):
+climate: turn_on,turn_off,set_temperature(temperature)
+cover: open_cover,close_cover,set_cover_position(position 0-100)
+fan: turn_on,turn_off,set_percentage(percentage 0-100)
+humidifier: turn_on,turn_off,set_humidity(humidity 0-100)
+light: turn_on(brightness 0-255,color_temp,rgb_color),turn_off
+lock: lock,unlock,open
+media_player: media_play,media_pause,volume_set(volume_level 0-1)
+scene: turn_on
+script: turn_on
+siren: turn_on,turn_off
+switch: turn_on,turn_off
+vacuum: start,pause,stop,return_to_base
+valve: open_valve,close_valve
+water_heater: turn_on,turn_off,set_temperature(temperature)
 
-Common domains and services:
-- climate: turn_on, turn_off, set_temperature (data: temperature)
-- cover: open_cover, close_cover, set_cover_position (data: position [0-100])
-- fan: turn_on, turn_off, set_percentage (data: percentage [0-100])
-- humidifier: turn_on, turn_off, set_humidity (data: humidity [0-100])
-- light: turn_on (data: brightness [0-255], color_temp, rgb_color), turn_off
-- lock: lock, unlock, open
-- media_player: media_play, media_pause, volume_set (data: volume_level [0-1])
-- scene: turn_on (to activate scenes)
-- script: turn_on (to run scripts)
-- siren: turn_on, turn_off
-- switch: turn_on, turn_off
-- vacuum: start, pause, stop, return_to_base
-- valve: open_valve, close_valve
-- water_heater: turn_on, turn_off, set_temperature (data: temperature)
-
-Always use the entity_id as the target.
-If data is not needed, set it to null.
+target=entity_id. Set data to null if not needed.
 """
