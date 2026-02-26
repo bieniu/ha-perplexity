@@ -9,6 +9,7 @@ from homeassistant.helpers import llm
 DOMAIN = "perplexity"
 LOGGER = logging.getLogger(__package__)
 
+CONF_INCLUDE_HOME_LOCATION = "include_home_location"
 CONF_REASONING_EFFORT = "reasoning_effort"
 CONF_WEB_SEARCH = "web_search"
 CONF_PROMPT = "prompt"
@@ -33,6 +34,7 @@ RECOMMENDED_CONVERSATION_OPTIONS = {
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
     CONF_WEB_SEARCH: DEFAULT_WEB_SEARCH,
+    CONF_INCLUDE_HOME_LOCATION: False,
 }
 
 # JSON schema for structured action response

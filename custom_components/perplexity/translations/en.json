@@ -84,6 +84,7 @@
             "step": {
                 "init": {
                     "data": {
+                        "include_home_location": "Include home location",
                         "llm_hass_api": "Control Home Assistant",
                         "model": "Model",
                         "prompt": "Instructions",
@@ -91,6 +92,7 @@
                         "web_search": "Web search"
                     },
                     "data_description": {
+                        "include_home_location": "Allows to provide LLM with information about your home's location",
                         "model": "The model to use for the conversation agent",
                         "prompt": "Instruct how the LLM should respond. This can be a template.",
                         "reasoning_effort": "Controls how much effort the model spends on reasoning",
