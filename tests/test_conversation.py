@@ -16,7 +16,12 @@ from pytest_homeassistant_custom_component.common import (
 )
 from syrupy.assertion import SnapshotAssertion
 
-from custom_components.perplexity.const import CONF_PROMPT, CONF_WEB_SEARCH, DOMAIN
+from custom_components.perplexity.const import (
+    CONF_INCLUDE_HOME_LOCATION,
+    CONF_PROMPT,
+    CONF_WEB_SEARCH,
+    DOMAIN,
+)
 from custom_components.perplexity.conversation import (
     ParsedAction,
     _parse_json_response,
@@ -468,3 +473,62 @@ async def test_conversation_with_delayed_action(
     assert service_calls[0].domain == "light"
     assert service_calls[0].service == "turn_off"
     assert service_calls[0].data.get("entity_id") == "light.living_room"
+
+
+async def test_conversation_with_home_location(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_stream: MagicMock,
+) -> None:
+    """Test that home location is included in the system prompt."""
+    hass.config.latitude = 51.5074
+    hass.config.longitude = -0.1278
+    hass.config.country = "GB"
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Perplexity",
+        data={"api_key": "test_api_key"},
+        subentries_data=[
+            {
+                "data": {
+                    CONF_MODEL: "sonar",
+                    CONF_WEB_SEARCH: True,
+                    CONF_PROMPT: "You are helpful.",
+                    CONF_INCLUDE_HOME_LOCATION: True,
+                },
+                "subentry_type": "conversation",
+                "title": "Sonar",
+                "subentry_id": "ulid-conversation-web",
+                "unique_id": None,
+            },
+        ],
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.perplexity.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("The weather in London is nice today.")
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "What's the weather like?",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
+    system_content = call_args["messages"][0]["content"]
+
+    assert "Coordinates: 51.507,-0.128" in system_content
+    assert "GB" in system_content
