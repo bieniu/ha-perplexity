@@ -23,6 +23,7 @@ from . import PerplexityConfigEntry
 from .const import (
     ACTION_INSTRUCTIONS,
     ACTION_RESPONSE_SCHEMA,
+    CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
     DOMAIN,
     LOGGER,
@@ -158,9 +159,13 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         user_prompt = options.get(CONF_PROMPT)
         llm_api_ids = options.get(CONF_LLM_HASS_API)
 
+        extra_system_prompt = self._build_extra_system_prompt(
+            user_input.extra_system_prompt
+        )
+
         if llm_api_ids:
             return await self._async_handle_with_actions(
-                user_input, chat_log, user_prompt, llm_api_ids
+                user_input, chat_log, user_prompt, llm_api_ids, extra_system_prompt
             )
 
         try:
@@ -168,7 +173,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
                 user_input.as_llm_context(DOMAIN),
                 None,
                 user_prompt,
-                user_input.extra_system_prompt,
+                extra_system_prompt,
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()
@@ -177,18 +182,55 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
 
+    def _build_extra_system_prompt(
+        self, original_extra_prompt: str | None
+    ) -> str | None:
+        """Build extra system prompt with optional home location."""
+        parts: list[str] = []
+
+        if location_prompt := self._get_home_location_prompt():
+            parts.append(location_prompt)
+
+        if original_extra_prompt:
+            parts.append(original_extra_prompt)
+
+        return "\n".join(parts) if parts else None
+
+    def _get_home_location_prompt(self) -> str | None:
+        """Get a prompt with home location information."""
+        if not self.subentry.data.get(CONF_INCLUDE_HOME_LOCATION):
+            return None
+
+        location_parts: list[str] = []
+
+        latitude = self.hass.config.latitude
+        longitude = self.hass.config.longitude
+        if latitude or longitude:
+            location_parts.append(
+                f"Coordinates: {round(latitude, 3)},{round(longitude, 3)}"
+            )
+
+        if country := self.hass.config.country:
+            location_parts.append(f"Country: {country}")
+
+        if not location_parts:
+            return None
+
+        return "User's home location information:\n" + "\n".join(location_parts)
+
     async def _async_handle_with_actions(
         self,
         user_input: conversation.ConversationInput,
         chat_log: conversation.ChatLog,
         user_prompt: str | None,
         llm_api_ids: list[str],
+        extra_system_prompt: str | None,
     ) -> conversation.ConversationResult:
         """Handle conversation with custom action parsing."""
         extra_parts: list[str] = []
 
-        if user_input.extra_system_prompt:
-            extra_parts.append(user_input.extra_system_prompt)
+        if extra_system_prompt:
+            extra_parts.append(extra_system_prompt)
         extra_parts.append(ACTION_INSTRUCTIONS)
 
         extra_parts.append(await self._async_generate_entity_context(llm_api_ids))

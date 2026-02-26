@@ -84,6 +84,7 @@
             "step": {
                 "init": {
                     "data": {
+                        "include_home_location": "Uwzgl\u0119dnij lokalizacj\u0119 domu",
                         "llm_hass_api": "Kontroluj Home Assistant",
                         "model": "Model",
                         "prompt": "Instrukcje",
@@ -91,6 +92,7 @@
                         "web_search": "Wyszukiwanie w sieci"
                     },
                     "data_description": {
+                        "include_home_location": "Zazwala na przekazywanie LLM-owi informacji o lokaliacji domu.",
                         "model": "Model, u\u017cywany na potrzeby agenta konwersacji.",
                         "prompt": "Poinstruuj LLM jak powinien reagowa\u0107. Mo\u017ce to by\u0107 szablon.",
                         "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie",

@@ -28,6 +28,7 @@ from homeassistant.helpers.selector import (
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import (
+    CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
     CONF_WEB_SEARCH,
@@ -335,6 +336,13 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                 default=self.options.get(
                     CONF_WEB_SEARCH,
                     RECOMMENDED_CONVERSATION_OPTIONS[CONF_WEB_SEARCH],
+                ),
+            ): bool,
+            vol.Required(
+                CONF_INCLUDE_HOME_LOCATION,
+                default=self.options.get(
+                    CONF_INCLUDE_HOME_LOCATION,
+                    RECOMMENDED_CONVERSATION_OPTIONS[CONF_INCLUDE_HOME_LOCATION],
                 ),
             ): bool,
         }
