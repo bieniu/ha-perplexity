@@ -205,7 +205,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
         latitude = self.hass.config.latitude
         longitude = self.hass.config.longitude
-        if latitude or longitude:
+        if latitude is not None and longitude is not None:
             location_parts.append(
                 f"Coordinates: {round(latitude, 3)},{round(longitude, 3)}"
             )
