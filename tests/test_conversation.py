@@ -531,4 +531,63 @@ async def test_conversation_with_home_location(
     system_content = call_args["messages"][0]["content"]
 
     assert "Coordinates: 51.507,-0.128" in system_content
-    assert "GB" in system_content
+    assert "Country: GB" in system_content
+
+
+async def test_conversation_with_home_location_no_country(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_stream: MagicMock,
+) -> None:
+    """Test that home location is included in the system prompt without country."""
+    hass.config.latitude = 51.5074
+    hass.config.longitude = -0.1278
+    hass.config.country = None
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Perplexity",
+        data={"api_key": "test_api_key"},
+        subentries_data=[
+            {
+                "data": {
+                    CONF_MODEL: "sonar",
+                    CONF_WEB_SEARCH: True,
+                    CONF_PROMPT: "You are helpful.",
+                    CONF_INCLUDE_HOME_LOCATION: True,
+                },
+                "subentry_type": "conversation",
+                "title": "Sonar",
+                "subentry_id": "ulid-conversation-web",
+                "unique_id": None,
+            },
+        ],
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.perplexity.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("The weather in London is nice today.")
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "What's the weather like?",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
+    system_content = call_args["messages"][0]["content"]
+
+    assert "Coordinates: 51.507,-0.128" in system_content
+    assert "Country" not in system_content
