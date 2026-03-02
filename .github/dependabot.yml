@@ -7,16 +7,17 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      runtime:
-        patterns:
-          - "perplexityai"
       dev:
         patterns:
           - "prek"
-          - "pytest"
-          - "pytest-*"
           - "ruff"
           - "ty"
+      test:
+        patterns:
+          - "pytest"
+          - "pytest-*"
+    ignore:
+      - dependency-name: "aiofiles"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -25,7 +26,6 @@ updates:
     groups:
       ci:
         patterns: ["*"]
-
 
   - package-ecosystem: "pre-commit"
     directory: "/"
