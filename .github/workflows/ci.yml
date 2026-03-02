@@ -26,7 +26,7 @@ jobs:
           python-version: 3.14
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --all-groups --prerelease=allow
 
       - name: Lint
         run: uv run ruff check .
@@ -66,7 +66,7 @@ jobs:
           python-version: 3.14
 
       - name: Install dependencies
-        run: uv sync --all-groups --prerelease=allow
+        run: uv sync --group test --prerelease=allow
 
       - name: Run tests
         run: uv run pytest --timeout=30 --cov=custom_components/perplexity --cov-report=xml --error-for-skips
