@@ -61,9 +61,9 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
 
 def _format_structured_output(
     name: str, schema: vol.Schema, llm_api: llm.APIInstance | None
-) -> dict[str, Any]:
+) -> dict[str, str | dict[str, Any]]:
     """Format the schema to be compatible with Perplexity API."""
-    result: dict[str, Any] = {
+    result: dict[str, str | dict[str, Any]] = {
         "type": "json_schema",
         "json_schema": {
             "name": name,
