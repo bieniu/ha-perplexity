@@ -23,7 +23,8 @@ custom_components/perplexity/
 ## Python and environment
 - Use the local venv in `./venv`
 - Activate with: `source venv/bin/activate`
-- `scripts/setup-local-env.sh` creates the venv and installs dev dependencies
+- `scripts/setup-local-env.sh` creates the venv (requires `python3.14`), installs `uv`, then installs dev dependencies from `requirements-dev.txt`
+- The setup script also runs `prek install`
 
 ## Linting and types
 - run `ruff check <files> --fix` to lint the code
@@ -37,6 +38,7 @@ custom_components/perplexity/
 - Avoid blocking the event loop and `time.sleep()`, use `asyncio.sleep()` and `gather()` instead of awaiting in loops
 - Handle errors with precise HA exceptions (`ConfigEntryNotReady`, `ConfigEntryAuthFailed`, `HomeAssistantError`), avoid bare `except` outside config flow and background tasks
 - Logs: no trailing periods, no sensitive data, and use lazy logging (`%s`)
+- User-facing text must be American English, friendly, second person, use sentence case and backticks for file/field names
 - Docstrings are required for functions/methods, file headers should briefly describe the integration
 - If using `runtime_data`, type the `ConfigEntry` with an alias and store non-persisted data in `entry.runtime_data`
 - For config changes or repairs, follow HA patterns for config flow, diagnostics, and repairs, and keep translations updated
@@ -58,7 +60,7 @@ custom_components/perplexity/
   - Never access `hass.data` directly - use fixtures and proper integration setup instead
   - Test through integration setup - don't test entities in isolation
   - Mock - use fixtures with realistic JSON data
-- Best Practices for Config Flow Testing:
+Best Practices for Config Flow Testing:
 - 100% coverage required: all config flow paths must be tested
 - Test Scenarios:
   - All flow initiation methods (user, discovery, import)
