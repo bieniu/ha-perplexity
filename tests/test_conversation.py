@@ -24,6 +24,8 @@ from custom_components.perplexity.const import (
 )
 from custom_components.perplexity.conversation import (
     ParsedAction,
+    ParsedTimerAction,
+    _build_timer_slots,
     _parse_json_response,
 )
 
@@ -591,3 +593,72 @@ async def test_conversation_with_home_location_no_country(
 
     assert "Coordinates: 51.507,-0.128" in system_content
     assert "Country" not in system_content
+
+
+async def test_conversation_with_timer_action(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_setup_entry: MockConfigEntry,
+    mock_stream: MagicMock,
+) -> None:
+    """Test conversation with timer action execution."""
+    json_response = json_dumps(
+        {
+            "response": "Starting a 5 minute timer for eggs.",
+            "actions": [],
+            "timer_actions": [
+                {
+                    "command": "start",
+                    "name": "eggs",
+                    "minutes": 5,
+                }
+            ],
+        }
+    )
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream(json_response)
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "Set a 5 minute timer for eggs",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+
+async def test_conversation_timer_action_handle_error(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_setup_entry: MockConfigEntry,
+    mock_stream: MagicMock,
+) -> None:
+    """Test conversation gracefully handles timer IntentHandleError."""
+    json_response = json_dumps(
+        {
+            "response": "Cancelling the timer.",
+            "actions": [],
+            "timer_actions": [
+                {
+                    "command": "cancel",
+                    "name": "eggs",
+                }
+            ],
+        }
+    )
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream(json_response)
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "Cancel egg timer",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
