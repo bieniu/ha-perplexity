@@ -25,6 +25,7 @@ from custom_components.perplexity.const import (
 from custom_components.perplexity.conversation import (
     ParsedAction,
     ParsedTimerAction,
+    _build_timer_slots,
     _parse_json_response,
 )
 
@@ -724,3 +725,53 @@ def test_parsed_timer_action_str_with_name_and_seconds() -> None:
     action = ParsedTimerAction(command="start", name="cake", seconds=30)
 
     assert str(action) == "timer.start name=cake 30s"
+
+
+def test_parse_json_response_timer_actions_invalid_command() -> None:
+    """Test that timer actions with invalid commands are skipped."""
+    response = json_dumps(
+        {
+            "response": "Test",
+            "timer_actions": [
+                {"command": "invalid_command", "minutes": 5},
+                {"command": "start", "minutes": 10},
+            ],
+        }
+    )
+
+    result = _parse_json_response(response)
+
+    assert len(result.timer_actions) == 1
+    assert result.timer_actions[0].command == "start"
+
+
+def test_parse_json_response_timer_actions_non_dict_skipped() -> None:
+    """Test that non-dict timer action entries are skipped."""
+    response = json_dumps(
+        {
+            "response": "Test",
+            "timer_actions": ["not a dict", {"command": "start", "minutes": 5}],
+        }
+    )
+
+    result = _parse_json_response(response)
+
+    assert len(result.timer_actions) == 1
+
+
+def test_build_timer_slots_start_with_conversation_command() -> None:
+    """Test building slots for a start timer with conversation command."""
+    timer_action = ParsedTimerAction(
+        command="start",
+        name="pizza",
+        hours=1,
+        minutes=30,
+        seconds=0,
+    )
+
+    slots = _build_timer_slots(timer_action)
+
+    assert slots["name"] == {"value": "pizza"}
+    assert slots["hours"] == {"value": 1}
+    assert slots["minutes"] == {"value": 30}
+    assert slots["seconds"] == {"value": 0}
