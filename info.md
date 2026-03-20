@@ -50,6 +50,7 @@ Perplexity integration supports:
 - **reasoning effort** configuration (for models supporting reasoning)
 - controlling **web search** option
 - delayed actions - you can ask the assistant to perform an action (for example, turn on the light) after some time or at a specific time
+- timers
 
 ## AI Task examples
 
