@@ -628,6 +628,7 @@ async def test_conversation_with_timer_action(
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
+
 async def test_conversation_with_increase_timer_action(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
@@ -710,11 +711,13 @@ def test_parsed_timer_action_str_with_name_and_minutes() -> None:
 
     assert str(action) == "timer.start name=eggs 5m"
 
+
 def test_parsed_timer_action_str_with_name_and_hours() -> None:
     """Test ParsedTimerAction string representation with name and hours."""
     action = ParsedTimerAction(command="start", name="cake", hours=1)
 
     assert str(action) == "timer.start name=cake 1h"
+
 
 def test_parsed_timer_action_str_with_name_and_seconds() -> None:
     """Test ParsedTimerAction string representation with name and seconds."""
