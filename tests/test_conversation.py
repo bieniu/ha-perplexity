@@ -24,6 +24,7 @@ from custom_components.perplexity.const import (
 )
 from custom_components.perplexity.conversation import (
     ParsedAction,
+    ParsedTimerAction,
     _parse_json_response,
 )
 
@@ -627,6 +628,40 @@ async def test_conversation_with_timer_action(
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
+async def test_conversation_with_increase_timer_action(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_setup_entry: MockConfigEntry,
+    mock_stream: MagicMock,
+) -> None:
+    """Test conversation with increase timer action execution."""
+    json_response = json_dumps(
+        {
+            "response": "Increasing the timer for eggs by 1 minute.",
+            "actions": [],
+            "timer_actions": [
+                {
+                    "command": "increase",
+                    "name": "eggs",
+                    "minutes": 1,
+                }
+            ],
+        }
+    )
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream(json_response)
+    )
+
+    result = await conversation.async_converse(
+        hass,
+        "Increase the timer for eggs by 1 minute",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
 
 async def test_conversation_timer_action_handle_error(
     hass: HomeAssistant,
@@ -660,3 +695,29 @@ async def test_conversation_timer_action_handle_error(
     )
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
+
+
+def test_parsed_timer_action_str_minimal() -> None:
+    """Test ParsedTimerAction string representation with minimal fields."""
+    action = ParsedTimerAction(command="cancel")
+
+    assert str(action) == "timer.cancel"
+
+
+def test_parsed_timer_action_str_with_name_and_minutes() -> None:
+    """Test ParsedTimerAction string representation with name and minutes."""
+    action = ParsedTimerAction(command="start", name="eggs", minutes=5)
+
+    assert str(action) == "timer.start name=eggs 5m"
+
+def test_parsed_timer_action_str_with_name_and_hours() -> None:
+    """Test ParsedTimerAction string representation with name and hours."""
+    action = ParsedTimerAction(command="start", name="cake", hours=1)
+
+    assert str(action) == "timer.start name=cake 1h"
+
+def test_parsed_timer_action_str_with_name_and_seconds() -> None:
+    """Test ParsedTimerAction string representation with name and seconds."""
+    action = ParsedTimerAction(command="start", name="cake", seconds=30)
+
+    assert str(action) == "timer.start name=cake 30s"
