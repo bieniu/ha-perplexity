@@ -24,8 +24,6 @@ from custom_components.perplexity.const import (
 )
 from custom_components.perplexity.conversation import (
     ParsedAction,
-    ParsedTimerAction,
-    _build_timer_slots,
     _parse_json_response,
 )
 
