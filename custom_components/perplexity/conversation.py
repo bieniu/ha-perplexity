@@ -7,9 +7,11 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 from homeassistant.components import conversation
+from homeassistant.components.intent import async_device_supports_timers
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
+from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.json import json_dumps
@@ -27,6 +29,7 @@ from .const import (
     CONF_PROMPT,
     DOMAIN,
     LOGGER,
+    TIMERS_UNSUPPORTED,
 )
 from .entity import PerplexityEntity
 
@@ -48,12 +51,55 @@ class ParsedAction:
         return f"{self.domain}.{self.service} -> {self.target} ({data_str}){delay_str}"
 
 
+TIMER_COMMAND_TO_INTENT: dict[str, str] = {
+    "start": intent.INTENT_START_TIMER,
+    "cancel": intent.INTENT_CANCEL_TIMER,
+    "cancel_all": intent.INTENT_CANCEL_ALL_TIMERS,
+    "pause": intent.INTENT_PAUSE_TIMER,
+    "unpause": intent.INTENT_UNPAUSE_TIMER,
+    "increase": intent.INTENT_INCREASE_TIMER,
+    "decrease": intent.INTENT_DECREASE_TIMER,
+    "status": intent.INTENT_TIMER_STATUS,
+}
+
+
+@dataclass
+class ParsedTimerAction:
+    """Represents a parsed timer action from the LLM response."""
+
+    command: str
+    name: str | None = None
+    hours: int | None = None
+    minutes: int | None = None
+    seconds: int | None = None
+    conversation_command: str | None = None
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        parts = [f"timer.{self.command}"]
+        if self.name:
+            parts.append(f"name={self.name}")
+        time_parts = []
+        if self.hours:
+            time_parts.append(f"{self.hours}h")
+        if self.minutes:
+            time_parts.append(f"{self.minutes}m")
+        if self.seconds:
+            time_parts.append(f"{self.seconds}s")
+        if time_parts:
+            parts.append("".join(time_parts))
+        if self.conversation_command:
+            parts.append(f"then='{self.conversation_command}'")
+        return " ".join(parts)
+
+
 @dataclass
 class ParsedResponse:
     """Represents a parsed response from the LLM."""
 
     content: str
     actions: list[ParsedAction] = field(default_factory=list)
+    timer_actions: list[ParsedTimerAction] = field(default_factory=list)
 
 
 def _parse_json_response(response_text: str) -> ParsedResponse:
@@ -111,7 +157,80 @@ def _parse_json_response(response_text: str) -> ParsedResponse:
                     )
                 )
 
-    return ParsedResponse(content=content or response_text, actions=actions)
+    return ParsedResponse(
+        content=content or response_text,
+        actions=actions,
+        timer_actions=_parse_timer_actions(data),
+    )
+
+
+def _parse_timer_actions(data: dict[str, Any]) -> list[ParsedTimerAction]:
+    """Parse timer actions from the response data."""
+    timer_actions: list[ParsedTimerAction] = []
+    raw_timer_actions = data.get("timer_actions")
+    if not isinstance(raw_timer_actions, list):
+        return timer_actions
+
+    for timer_data in raw_timer_actions:
+        if not isinstance(timer_data, dict):
+            continue
+        command = timer_data.get("command")
+        if not isinstance(command, str) or command not in TIMER_COMMAND_TO_INTENT:
+            continue
+
+        name = timer_data.get("name")
+        hours = timer_data.get("hours")
+        minutes = timer_data.get("minutes")
+        seconds = timer_data.get("seconds")
+        conversation_command = timer_data.get("conversation_command")
+
+        timer_actions.append(
+            ParsedTimerAction(
+                command=command,
+                name=name if isinstance(name, str) else None,
+                hours=int(hours) if isinstance(hours, (int, float)) else None,
+                minutes=int(minutes) if isinstance(minutes, (int, float)) else None,
+                seconds=int(seconds) if isinstance(seconds, (int, float)) else None,
+                conversation_command=(
+                    conversation_command
+                    if isinstance(conversation_command, str)
+                    else None
+                ),
+            )
+        )
+
+    return timer_actions
+
+
+def _build_timer_slots(timer_action: ParsedTimerAction) -> dict[str, Any]:
+    """Build intent slots from a parsed timer action."""
+    slots: dict[str, Any] = {}
+
+    if timer_action.name:
+        slots["name"] = {"value": timer_action.name}
+
+    if timer_action.command == "start":
+        _add_time_slots(slots, timer_action, prefix="")
+        if timer_action.conversation_command:
+            slots["conversation_command"] = {"value": timer_action.conversation_command}
+    elif timer_action.command in ("cancel", "pause", "unpause", "status"):
+        _add_time_slots(slots, timer_action, prefix="start_")
+    elif timer_action.command in ("increase", "decrease"):
+        _add_time_slots(slots, timer_action, prefix="")
+
+    return slots
+
+
+def _add_time_slots(
+    slots: dict[str, Any], timer_action: ParsedTimerAction, prefix: str
+) -> None:
+    """Add time-related slots with the given prefix."""
+    if timer_action.hours is not None:
+        slots[f"{prefix}hours"] = {"value": timer_action.hours}
+    if timer_action.minutes is not None:
+        slots[f"{prefix}minutes"] = {"value": timer_action.minutes}
+    if timer_action.seconds is not None:
+        slots[f"{prefix}seconds"] = {"value": timer_action.seconds}
 
 
 async def async_setup_entry(
@@ -233,6 +352,11 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             extra_parts.append(extra_system_prompt)
         extra_parts.append(ACTION_INSTRUCTIONS)
 
+        if not user_input.device_id or not async_device_supports_timers(
+            self.hass, user_input.device_id
+        ):
+            extra_parts.append(TIMERS_UNSUPPORTED)
+
         extra_parts.append(await self._async_generate_entity_context(llm_api_ids))
 
         try:
@@ -278,6 +402,8 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         if parsed_results:
             for action in parsed_results[0].actions:
                 await self._async_execute_action(action)
+            for timer_action in parsed_results[0].timer_actions:
+                await self._async_execute_timer_action(timer_action, user_input)
 
         return conversation.async_get_result_from_chat_log(user_input, chat_log)
 
@@ -353,6 +479,36 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             _delayed_callback,
         )
         self._scheduled_actions.append(cancel)
+
+    async def _async_execute_timer_action(
+        self,
+        timer_action: ParsedTimerAction,
+        user_input: conversation.ConversationInput,
+    ) -> None:
+        """Execute a timer action by firing the corresponding intent."""
+        intent_type = TIMER_COMMAND_TO_INTENT.get(timer_action.command)
+        if not intent_type:
+            LOGGER.warning("Unknown timer command: %s", timer_action.command)
+            return
+
+        LOGGER.debug("Executing timer action: %s", timer_action)
+        slots = _build_timer_slots(timer_action)
+
+        try:
+            await intent.async_handle(
+                hass=self.hass,
+                platform=DOMAIN,
+                intent_type=intent_type,
+                slots=slots,
+                text_input=user_input.text,
+                context=user_input.context,
+                language=user_input.language,
+                assistant=conversation.DOMAIN,
+                device_id=user_input.device_id,
+                conversation_agent_id=user_input.agent_id,
+            )
+        except intent.IntentHandleError as err:
+            LOGGER.warning("Timer action failed: %s", err)
 
     async def async_will_remove_from_hass(self) -> None:
         """Cancel all scheduled actions when entity is removed."""

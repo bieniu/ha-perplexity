@@ -18,6 +18,8 @@ RECOMMENDED_CHAT_MODEL = "sonar"
 DEFAULT_REASONING_EFFORT = "low"
 DEFAULT_WEB_SEARCH = False
 
+TIMERS_UNSUPPORTED = "This device is not able to start timers."
+
 PERPLEXITY_MODELS = {
     "sonar": "Sonar",
     "sonar-pro": "Sonar Pro",
@@ -96,8 +98,78 @@ ACTION_RESPONSE_SCHEMA: dict[str, Any] = {
                         "additionalProperties": False,
                     },
                 },
+                "timer_actions": {
+                    "type": ["array", "null"],
+                    "description": (
+                        "List of timer actions to execute "
+                        "(start, cancel, cancel_all, pause, unpause, "
+                        "increase, decrease, status)"
+                    ),
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "command": {
+                                "type": "string",
+                                "enum": [
+                                    "start",
+                                    "cancel",
+                                    "cancel_all",
+                                    "pause",
+                                    "unpause",
+                                    "increase",
+                                    "decrease",
+                                    "status",
+                                ],
+                                "description": "The timer command to execute",
+                            },
+                            "name": {
+                                "type": ["string", "null"],
+                                "description": (
+                                    "Optional name for the timer (e.g., pizza, eggs)"
+                                ),
+                            },
+                            "hours": {
+                                "type": ["integer", "null"],
+                                "description": (
+                                    "Number of hours for start/increase/"
+                                    "decrease commands"
+                                ),
+                            },
+                            "minutes": {
+                                "type": ["integer", "null"],
+                                "description": (
+                                    "Number of minutes for start/increase/"
+                                    "decrease commands"
+                                ),
+                            },
+                            "seconds": {
+                                "type": ["integer", "null"],
+                                "description": (
+                                    "Number of seconds for start/increase/"
+                                    "decrease commands"
+                                ),
+                            },
+                            "conversation_command": {
+                                "type": ["string", "null"],
+                                "description": (
+                                    "A command to execute when the timer "
+                                    "finishes (e.g., 'turn off the lights')"
+                                ),
+                            },
+                        },
+                        "required": [
+                            "command",
+                            "name",
+                            "hours",
+                            "minutes",
+                            "seconds",
+                            "conversation_command",
+                        ],
+                        "additionalProperties": False,
+                    },
+                },
             },
-            "required": ["response", "actions"],
+            "required": ["response", "actions", "timer_actions"],
             "additionalProperties": False,
         },
     },
@@ -133,4 +205,40 @@ valve: open_valve,close_valve
 water_heater: turn_on,turn_off,set_temperature(temperature)
 
 target=entity_id. Set data to null if not needed.
+
+Timer commands (use timer_actions array):
+Format: {"command":"<str>","name":<str>|null,"hours":<int>|null,\
+"minutes":<int>|null,"seconds":<int>|null,"conversation_command":<str>|null}
+
+Commands:
+- start: Start a new timer. Requires at least one of hours/minutes/seconds.
+  Optional name for identification. Optional conversation_command to execute \
+when timer finishes.
+- cancel: Cancel a specific timer. Use name or hours/minutes/seconds to \
+identify it.
+- cancel_all: Cancel all timers. name/hours/minutes/seconds not needed.
+- pause: Pause a running timer. Use name or hours/minutes/seconds to \
+identify it.
+- unpause: Resume a paused timer. Use name or hours/minutes/seconds to \
+identify it.
+- increase: Add time to a timer. Requires hours/minutes/seconds for amount \
+to add. Use name to identify which timer.
+- decrease: Remove time from a timer. Requires hours/minutes/seconds for \
+amount to remove. Use name to identify which timer.
+- status: Get timer status. Use name to filter, or leave null for all timers.
+
+Examples:
+"Set a 5 minute timer" => {"command":"start","name":null,"hours":null,\
+"minutes":5,"seconds":null,"conversation_command":null}
+"Set a pizza timer for 12 minutes" => {"command":"start","name":"pizza",\
+"hours":null,"minutes":12,"seconds":null,"conversation_command":null}
+"Cancel the pizza timer" => {"command":"cancel","name":"pizza","hours":null,\
+"minutes":null,"seconds":null,"conversation_command":null}
+"Pause the timer" => {"command":"pause","name":null,"hours":null,\
+"minutes":null,"seconds":null,"conversation_command":null}
+"Add 2 minutes to the timer" => {"command":"increase","name":null,\
+"hours":null,"minutes":2,"seconds":null,"conversation_command":null}
+"Set a timer for 30 minutes and then turn off the lights" => \
+{"command":"start","name":null,"hours":null,"minutes":30,"seconds":null,\
+"conversation_command":"turn off the lights"}
 """
