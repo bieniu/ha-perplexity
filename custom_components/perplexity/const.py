@@ -149,13 +149,6 @@ ACTION_RESPONSE_SCHEMA: dict[str, Any] = {
                                     "decrease commands"
                                 ),
                             },
-                            "conversation_command": {
-                                "type": ["string", "null"],
-                                "description": (
-                                    "A command to execute when the timer "
-                                    "finishes (e.g., 'turn off the lights')"
-                                ),
-                            },
                         },
                         "required": [
                             "command",
@@ -163,7 +156,6 @@ ACTION_RESPONSE_SCHEMA: dict[str, Any] = {
                             "hours",
                             "minutes",
                             "seconds",
-                            "conversation_command",
                         ],
                         "additionalProperties": False,
                     },
@@ -208,12 +200,11 @@ target=entity_id. Set data to null if not needed.
 
 Timer commands (use timer_actions array):
 Format: {"command":"<str>","name":<str>|null,"hours":<int>|null,\
-"minutes":<int>|null,"seconds":<int>|null,"conversation_command":<str>|null}
+"minutes":<int>|null,"seconds":<int>|null}
 
 Commands:
 - start: Start a new timer. Requires at least one of hours/minutes/seconds.
-  Optional name for identification. Optional conversation_command to execute \
-when timer finishes.
+Optional name for identification.
 - cancel: Cancel a specific timer. Use name or hours/minutes/seconds to \
 identify it.
 - cancel_all: Cancel all timers. name/hours/minutes/seconds not needed.
@@ -229,16 +220,13 @@ amount to remove. Use name to identify which timer.
 
 Examples:
 "Set a 5 minute timer" => {"command":"start","name":null,"hours":null,\
-"minutes":5,"seconds":null,"conversation_command":null}
+"minutes":5,"seconds":null}
 "Set a pizza timer for 12 minutes" => {"command":"start","name":"pizza",\
-"hours":null,"minutes":12,"seconds":null,"conversation_command":null}
+"hours":null,"minutes":12,"seconds":null}
 "Cancel the pizza timer" => {"command":"cancel","name":"pizza","hours":null,\
-"minutes":null,"seconds":null,"conversation_command":null}
+"minutes":null,"seconds":null}
 "Pause the timer" => {"command":"pause","name":null,"hours":null,\
-"minutes":null,"seconds":null,"conversation_command":null}
+"minutes":null,"seconds":null}
 "Add 2 minutes to the timer" => {"command":"increase","name":null,\
-"hours":null,"minutes":2,"seconds":null,"conversation_command":null}
-"Set a timer for 30 minutes and then turn off the lights" => \
-{"command":"start","name":null,"hours":null,"minutes":30,"seconds":null,\
-"conversation_command":"turn off the lights"}
+"hours":null,"minutes":2,"seconds":null}
 """

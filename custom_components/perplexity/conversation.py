@@ -72,7 +72,6 @@ class ParsedTimerAction:
     hours: int | None = None
     minutes: int | None = None
     seconds: int | None = None
-    conversation_command: str | None = None
 
     def __str__(self) -> str:
         """Return string representation."""
@@ -88,8 +87,6 @@ class ParsedTimerAction:
             time_parts.append(f"{self.seconds}s")
         if time_parts:
             parts.append("".join(time_parts))
-        if self.conversation_command:
-            parts.append(f"then='{self.conversation_command}'")
         return " ".join(parts)
 
 
@@ -182,7 +179,6 @@ def _parse_timer_actions(data: dict[str, Any]) -> list[ParsedTimerAction]:
         hours = timer_data.get("hours")
         minutes = timer_data.get("minutes")
         seconds = timer_data.get("seconds")
-        conversation_command = timer_data.get("conversation_command")
 
         timer_actions.append(
             ParsedTimerAction(
@@ -191,11 +187,6 @@ def _parse_timer_actions(data: dict[str, Any]) -> list[ParsedTimerAction]:
                 hours=int(hours) if isinstance(hours, (int, float)) else None,
                 minutes=int(minutes) if isinstance(minutes, (int, float)) else None,
                 seconds=int(seconds) if isinstance(seconds, (int, float)) else None,
-                conversation_command=(
-                    conversation_command
-                    if isinstance(conversation_command, str)
-                    else None
-                ),
             )
         )
 
@@ -211,8 +202,6 @@ def _build_timer_slots(timer_action: ParsedTimerAction) -> dict[str, Any]:
 
     if timer_action.command == "start":
         _add_time_slots(slots, timer_action, prefix="")
-        if timer_action.conversation_command:
-            slots["conversation_command"] = {"value": timer_action.conversation_command}
     elif timer_action.command in ("cancel", "pause", "unpause", "status"):
         _add_time_slots(slots, timer_action, prefix="start_")
     elif timer_action.command in ("increase", "decrease"):
