@@ -61,7 +61,7 @@ async def test_ai_task_entity(
         state = hass.states.get(entity_entry.entity_id)
         assert state is not None
 
-        state_dict = state.as_dict()
+        state_dict = state._as_dict
         for item in ("context", "last_changed", "last_reported", "last_updated"):
             state_dict.pop(item)
         assert state_dict == snapshot(name=f"{entity_entry.entity_id}-state")
