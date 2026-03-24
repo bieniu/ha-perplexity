@@ -58,10 +58,13 @@ async def test_ai_task_entity(
             entity_entry_dict.pop(item)
         assert entity_entry_dict == snapshot(name=f"{entity_entry.entity_id}-entry")
 
-        state = hass.states.get(entity_entry.entity_id)._as_dict
+        state = hass.states.get(entity_entry.entity_id)
+        assert state is not None
+
+        state_dict = state.as_dict()
         for item in ("context", "last_changed", "last_reported", "last_updated"):
-            state.pop(item)
-        assert state == snapshot(name=f"{entity_entry.entity_id}-state")
+            state_dict.pop(item)
+        assert state_dict == snapshot(name=f"{entity_entry.entity_id}-state")
 
 
 async def test_ai_task_generate_data_without_structure(
@@ -85,6 +88,27 @@ async def test_ai_task_generate_data_without_structure(
     assert result.data == "Test response"
 
 
+async def test_ai_task_generate_data_without_structure_strips_reasoning(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
+) -> None:
+    """Test AI task strips reasoning blocks from plain text responses."""
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream("<think>\nReasoning here\n</think>\n\nVisible answer")
+    )
+
+    result = await ai_task.async_generate_data(
+        hass,
+        task_name="Test task",
+        entity_id="ai_task.sonar",
+        instructions="Test instructions",
+    )
+
+    assert result.data == "Visible answer"
+
+
 async def test_ai_task_generate_data_with_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
@@ -94,6 +118,28 @@ async def test_ai_task_generate_data_with_structure(
     """Test AI task generate data with structure."""
     mock_perplexity_client.chat.completions.create = AsyncMock(
         return_value=mock_stream('{"key": "value"}')
+    )
+
+    result = await ai_task.async_generate_data(
+        hass,
+        task_name="Test task",
+        entity_id="ai_task.sonar",
+        instructions="Test instructions",
+        structure=vol.Schema({vol.Required("key"): str}),
+    )
+
+    assert result.data == {"key": "value"}
+
+
+async def test_ai_task_generate_data_with_structure_strips_reasoning(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
+) -> None:
+    """Test AI task strips reasoning blocks before parsing structured data."""
+    mock_perplexity_client.chat.completions.create = AsyncMock(
+        return_value=mock_stream('<think>\nReasoning here\n</think>\n{"key": "value"}')
     )
 
     result = await ai_task.async_generate_data(

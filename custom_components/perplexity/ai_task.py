@@ -9,6 +9,7 @@ from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads
 from . import PerplexityConfigEntry
 from .const import DOMAIN
 from .entity import PerplexityEntity
+from .utils import strip_reasoning
 
 
 async def async_setup_entry(
@@ -57,6 +58,7 @@ class PerplexityAITaskEntity(
             )
 
         text = last_content.content or ""
+        text = strip_reasoning(text)
 
         if not task.structure:
             return ai_task.GenDataTaskResult(
