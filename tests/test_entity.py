@@ -170,7 +170,7 @@ def test_convert_content_assistant() -> None:
 
 
 def test_convert_content_assistant_none_content() -> None:
-    """Test _convert_content_to_chat_message with assistant content=None (tool call only)."""
+    """Test _convert_content_to_chat_message with assistant content=None."""
     content = conversation.AssistantContent(
         agent_id="test_agent",
         content=None,
