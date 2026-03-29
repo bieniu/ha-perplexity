@@ -27,7 +27,6 @@ from .const import (
     DEFAULT_REASONING_EFFORT,
     DEFAULT_WEB_SEARCH,
     DOMAIN,
-    LOGGER,
     REASONING_MODELS,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
@@ -99,7 +98,6 @@ def _convert_content_to_chat_message(
     if content.role == "assistant" and content.content:
         return {"role": "assistant", "content": content.content}
 
-    LOGGER.warning("Could not convert message to Perplexity API: %s", content)
     return None
 
 
