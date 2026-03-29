@@ -169,6 +169,32 @@ def test_convert_content_assistant() -> None:
     assert result["content"] == "Hello! How can I help?"
 
 
+def test_convert_content_assistant_none_content() -> None:
+    """Test _convert_content_to_chat_message with assistant content=None (tool call only)."""
+    content = conversation.AssistantContent(
+        agent_id="test_agent",
+        content=None,
+    )
+
+    result = _convert_content_to_chat_message(content)
+
+    assert result is None
+
+
+def test_convert_content_tool_result_skipped() -> None:
+    """Test _convert_content_to_chat_message skips ToolResultContent with a warning."""
+    content = conversation.ToolResultContent(
+        agent_id="test_agent",
+        tool_call_id="call_123",
+        tool_name="HassTurnOn",
+        tool_result={"speech": {"plain": {"speech": "Done", "extra_data": None}}},
+    )
+
+    result = _convert_content_to_chat_message(content)
+
+    assert result is None
+
+
 def test_convert_content_unknown_role() -> None:
     """Test _convert_content_to_chat_message with unknown role."""
     content = MagicMock()
