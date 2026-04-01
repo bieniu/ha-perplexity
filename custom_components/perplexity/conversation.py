@@ -229,12 +229,10 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up conversation entities."""
-    for subentry_id, subentry in config_entry.subentries.items():
-        if subentry.subentry_type != SUBENTRY_TYPE_CONVERSATION:
-            continue
+    for subentry in config_entry.get_subentries_of_type(SUBENTRY_TYPE_CONVERSATION):
         async_add_entities(
             [PerplexityConversationEntity(config_entry, subentry)],
-            config_subentry_id=subentry_id,
+            config_subentry_id=subentry.subentry_id,
         )
 
 
