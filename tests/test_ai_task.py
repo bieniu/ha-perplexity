@@ -14,7 +14,11 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from syrupy.assertion import SnapshotAssertion
 
-from custom_components.perplexity.const import CONF_WEB_SEARCH, DOMAIN
+from custom_components.perplexity.const import (
+    CONF_WEB_SEARCH,
+    DOMAIN,
+    SUBENTRY_TYPE_AI_TASK,
+)
 
 
 async def test_ai_task_entity(
@@ -211,7 +215,7 @@ async def test_ai_task_web_search_enabled(
         subentries_data=[
             {
                 "data": {CONF_MODEL: "sonar", CONF_WEB_SEARCH: True},
-                "subentry_type": "ai_task_data",
+                "subentry_type": SUBENTRY_TYPE_AI_TASK,
                 "title": "Sonar",
                 "subentry_id": "ulid-ai-task-web",
                 "unique_id": None,

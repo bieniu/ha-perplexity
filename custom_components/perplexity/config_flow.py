@@ -41,6 +41,8 @@ from .const import (
     REASONING_MODELS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CONVERSATION_OPTIONS,
+    SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_CONVERSATION,
 )
 
 DESCRIPTION_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
@@ -59,8 +61,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this handler."""
         return {
-            "ai_task_data": PerplexityAITaskFlowHandler,
-            "conversation": PerplexityConversationFlowHandler,
+            SUBENTRY_TYPE_AI_TASK: PerplexityAITaskFlowHandler,
+            SUBENTRY_TYPE_CONVERSATION: PerplexityConversationFlowHandler,
         }
 
     async def _validate_input(self, user_input: dict[str, Any]) -> dict[str, str]:

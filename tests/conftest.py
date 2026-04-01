@@ -14,7 +14,12 @@ from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.amber import AmberSnapshotExtension
 from syrupy.location import PyTestLocation
 
-from custom_components.perplexity.const import CONF_PROMPT, DOMAIN
+from custom_components.perplexity.const import (
+    CONF_PROMPT,
+    DOMAIN,
+    SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_CONVERSATION,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -42,7 +47,7 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
         subentries_data=[
             {
                 "data": {CONF_MODEL: "sonar"},
-                "subentry_type": "ai_task_data",
+                "subentry_type": SUBENTRY_TYPE_AI_TASK,
                 "title": "Sonar",
                 "subentry_id": "ulid-ai-task",
                 "unique_id": None,
@@ -53,7 +58,7 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
                     CONF_MODEL: "sonar",
                     CONF_PROMPT: "instruction",
                 },
-                "subentry_type": "conversation",
+                "subentry_type": SUBENTRY_TYPE_CONVERSATION,
                 "title": "Sonar",
                 "subentry_id": "ulid-conversation",
                 "unique_id": None,

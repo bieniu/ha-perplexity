@@ -29,6 +29,7 @@ from .const import (
     CONF_PROMPT,
     DOMAIN,
     LOGGER,
+    SUBENTRY_TYPE_CONVERSATION,
     TIMERS_UNSUPPORTED,
 )
 from .entity import PerplexityEntity
@@ -229,7 +230,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up conversation entities."""
     for subentry_id, subentry in config_entry.subentries.items():
-        if subentry.subentry_type != "conversation":
+        if subentry.subentry_type != SUBENTRY_TYPE_CONVERSATION:
             continue
         async_add_entities(
             [PerplexityConversationEntity(config_entry, subentry)],

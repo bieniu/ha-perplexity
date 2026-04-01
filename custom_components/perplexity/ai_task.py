@@ -7,7 +7,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads
 
 from . import PerplexityConfigEntry
-from .const import DOMAIN
+from .const import DOMAIN, SUBENTRY_TYPE_AI_TASK
 from .entity import PerplexityEntity
 from .utils import strip_reasoning
 
@@ -19,7 +19,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up AI Task entities."""
     for subentry in config_entry.subentries.values():
-        if subentry.subentry_type != "ai_task_data":
+        if subentry.subentry_type != SUBENTRY_TYPE_AI_TASK:
             continue
 
         async_add_entities(

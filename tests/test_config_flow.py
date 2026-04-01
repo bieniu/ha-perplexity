@@ -15,6 +15,8 @@ from custom_components.perplexity.const import (
     CONF_REASONING_EFFORT,
     CONF_WEB_SEARCH,
     DOMAIN,
+    SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_CONVERSATION,
 )
 
 
@@ -341,7 +343,7 @@ async def test_get_supported_subentry_types(
     subentry_types = PerplexityConfigFlow.async_get_supported_subentry_types(
         mock_config_entry
     )
-    assert "ai_task_data" in subentry_types
+    assert SUBENTRY_TYPE_AI_TASK in subentry_types
 
 
 async def test_ai_task_subentry_flow(
@@ -350,7 +352,7 @@ async def test_ai_task_subentry_flow(
 ) -> None:
     """Test AI task subentry flow."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_config_entry.entry_id, "ai_task_data"),
+        (mock_config_entry.entry_id, SUBENTRY_TYPE_AI_TASK),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.FORM
@@ -379,7 +381,7 @@ async def test_ai_task_subentry_options_flow_reasoning_model(
 
     # Create a subentry with reasoning model
     result = await hass.config_entries.subentries.async_init(
-        (entry.entry_id, "ai_task_data"),
+        (entry.entry_id, SUBENTRY_TYPE_AI_TASK),
         context={"source": SOURCE_USER},
     )
 
@@ -427,7 +429,7 @@ async def test_ai_task_subentry_options_flow_non_reasoning_model(
     entry.add_to_hass(hass)
 
     result = await hass.config_entries.subentries.async_init(
-        (entry.entry_id, "ai_task_data"),
+        (entry.entry_id, SUBENTRY_TYPE_AI_TASK),
         context={"source": SOURCE_USER},
     )
 
@@ -466,7 +468,7 @@ async def test_get_supported_subentry_types_includes_conversation(
     subentry_types = PerplexityConfigFlow.async_get_supported_subentry_types(
         mock_config_entry
     )
-    assert "conversation" in subentry_types
+    assert SUBENTRY_TYPE_CONVERSATION in subentry_types
 
 
 async def test_conversation_subentry_flow(
@@ -475,7 +477,7 @@ async def test_conversation_subentry_flow(
 ) -> None:
     """Test conversation subentry flow."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.FORM
@@ -501,7 +503,7 @@ async def test_conversation_subentry_flow_without_assist(
 ) -> None:
     """Test conversation subentry flow without LLM assist."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.FORM
@@ -527,7 +529,7 @@ async def test_conversation_subentry_flow_with_prompt(
 ) -> None:
     """Test conversation subentry flow with custom prompt."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
 
@@ -552,7 +554,7 @@ async def test_conversation_subentry_reconfigure_flow(
     """Test conversation subentry reconfigure flow."""
     # First create a conversation subentry
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     result = await hass.config_entries.subentries.async_configure(
@@ -567,7 +569,7 @@ async def test_conversation_subentry_reconfigure_flow(
     # Find the conversation subentry
     conversation_subentry_id = None
     for subentry_id, subentry in mock_setup_entry.subentries.items():
-        if subentry.subentry_type == "conversation":
+        if subentry.subentry_type == SUBENTRY_TYPE_CONVERSATION:
             conversation_subentry_id = subentry_id
             break
 
@@ -605,7 +607,7 @@ async def test_conversation_subentry_flow_entry_not_loaded(
     """Test conversation subentry flow when entry is not loaded."""
     # Don't set up the entry (leave it not loaded)
     result = await hass.config_entries.subentries.async_init(
-        (mock_config_entry.entry_id, "conversation"),
+        (mock_config_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.ABORT
@@ -618,7 +620,7 @@ async def test_conversation_subentry_flow_with_web_search(
 ) -> None:
     """Test conversation subentry flow with web search enabled."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.FORM
@@ -642,7 +644,7 @@ async def test_conversation_subentry_flow_reasoning_model(
 ) -> None:
     """Test conversation subentry flow with reasoning model and effort."""
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     assert result["type"] is FlowResultType.FORM
@@ -670,7 +672,7 @@ async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
     """Test conversation subentry reconfigure with web search and reasoning."""
     # Create a conversation subentry with reasoning model
     result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, "conversation"),
+        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
     )
     result = await hass.config_entries.subentries.async_configure(
@@ -687,7 +689,7 @@ async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
     conversation_subentry_id = None
     for subentry_id, subentry in mock_setup_entry.subentries.items():
         if (
-            subentry.subentry_type == "conversation"
+            subentry.subentry_type == SUBENTRY_TYPE_CONVERSATION
             and subentry.data.get(CONF_MODEL) == "sonar-reasoning-pro"
         ):
             conversation_subentry_id = subentry_id

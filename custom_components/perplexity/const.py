@@ -32,6 +32,9 @@ REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]
 
 WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
 
+SUBENTRY_TYPE_AI_TASK = "ai_task_data"
+SUBENTRY_TYPE_CONVERSATION = "conversation"
+
 RECOMMENDED_CONVERSATION_OPTIONS = {
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
