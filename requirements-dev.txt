@@ -2,9 +2,9 @@ aiofiles>=25.1.0
 hassil
 home-assistant-intents
 perplexityai==0.32.1
-prek==0.3.10
+prek==0.3.11
 pytest-error-for-skips==2.0.2
-pytest-homeassistant-custom-component==0.13.324
+pytest-homeassistant-custom-component==0.13.325
 pyturbojpeg
-ruff==0.15.11
-ty==0.0.32
+ruff==0.15.12
+ty==0.0.33
