@@ -160,6 +160,7 @@ async def test_reauth_flow_success(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert mock_config_entry.data[CONF_API_KEY] == "new_api_key"
+    await hass.async_block_till_done()
 
 
 async def test_reauth_flow_invalid_auth(
@@ -259,6 +260,7 @@ async def test_reconfigure_flow_success(
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert mock_config_entry.data[CONF_API_KEY] == "new_api_key"
+    await hass.async_block_till_done()
 
 
 async def test_reconfigure_flow_invalid_auth(
