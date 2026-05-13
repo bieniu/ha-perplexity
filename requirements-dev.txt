@@ -4,7 +4,7 @@ home-assistant-intents
 perplexityai==0.32.1
 prek==0.3.13
 pytest-error-for-skips==2.0.2
-pytest-homeassistant-custom-component==0.13.327
+pytest-homeassistant-custom-component==0.13.330
 pyturbojpeg
 ruff==0.15.12
-ty==0.0.34
+ty==0.0.35
