@@ -18,6 +18,8 @@ RECOMMENDED_CHAT_MODEL = "sonar"
 DEFAULT_REASONING_EFFORT = "low"
 DEFAULT_WEB_SEARCH = False
 
+MIN_MAX_TOKENS = 16
+
 TIMERS_UNSUPPORTED = "This device is not able to start timers."
 
 PERPLEXITY_MODELS = {

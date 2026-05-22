@@ -36,6 +36,7 @@ from .const import (
     DEFAULT_WEB_SEARCH,
     DOMAIN,
     LOGGER,
+    MIN_MAX_TOKENS,
     PERPLEXITY_MODELS,
     REASONING_EFFORT_OPTIONS,
     REASONING_MODELS,
@@ -77,7 +78,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 model="sonar",
                 messages=[{"role": "user", "content": "hi"}],
                 disable_search=True,
-                max_tokens=1,
+                max_tokens=MIN_MAX_TOKENS,
             )
         except AuthenticationError:
             errors["base"] = "invalid_auth"
