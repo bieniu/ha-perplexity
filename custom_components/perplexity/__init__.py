@@ -31,7 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
             model="sonar",
             messages=[{"role": "user", "content": "hi"}],
             disable_search=True,
-            max_tokens=1,
+            max_tokens=16,
         )
     except AuthenticationError as err:
         raise ConfigEntryAuthFailed(

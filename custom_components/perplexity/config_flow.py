@@ -77,7 +77,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 model="sonar",
                 messages=[{"role": "user", "content": "hi"}],
                 disable_search=True,
-                max_tokens=1,
+                max_tokens=16,
             )
         except AuthenticationError:
             errors["base"] = "invalid_auth"
