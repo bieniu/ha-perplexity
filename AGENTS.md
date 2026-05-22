@@ -52,6 +52,7 @@ custom_components/perplexity/
 - Logs: no trailing periods, no sensitive data, and use lazy logging (`%s`)
 - User-facing text must be American English, friendly, second person, use sentence case and backticks for file/field names
 - Docstrings are required for functions/methods, file headers should briefly describe the integration
+- Avoid very long docstrings; prefer one-line docstrings and keep them to 3 lines at most
 - If using `runtime_data`, type the `ConfigEntry` with an alias and store non-persisted data in `entry.runtime_data`
 - For config changes or repairs, follow HA patterns for config flow, diagnostics, and repairs, and keep translations updated
 
