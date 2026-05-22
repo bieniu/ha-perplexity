@@ -8,7 +8,7 @@ from homeassistant.helpers.httpx_client import get_async_client
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN
+from .const import DOMAIN, MIN_MAX_TOKENS
 
 PLATFORMS = [Platform.AI_TASK, Platform.CONVERSATION]
 
@@ -31,7 +31,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
             model="sonar",
             messages=[{"role": "user", "content": "hi"}],
             disable_search=True,
-            max_tokens=16,
+            max_tokens=MIN_MAX_TOKENS,
         )
     except AuthenticationError as err:
         raise ConfigEntryAuthFailed(
