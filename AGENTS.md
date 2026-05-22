@@ -1,11 +1,13 @@
 # Instructions for AI Agents (Copilot, Claude, Codex)
 
 ## Repository context
+
 - This repository contains a custom Home Assistant integration for Perplexity
 - The main integration logic lives in `custom_components/perplexity/`
 
 ## `custom_components/perplexity` structure
-```
+
+```text
 custom_components/perplexity/
 ├── __init__.py          # Entry point with async_setup_entry
 ├── manifest.json        # Integration metadata and dependencies
@@ -22,6 +24,7 @@ custom_components/perplexity/
 ```
 
 ## Integration architecture notes
+
 - `__init__.py` validates the API key, creates `AsyncPerplexity`, stores it in `entry.runtime_data`, and forwards setup to `ai_task` and `conversation`
 - `config_flow.py` handles the main API key flow plus config subentries for AI Task and Conversation
 - `entity.py` contains shared Perplexity request handling, streaming, structured output formatting, reasoning options, web search options, and image attachment preparation
@@ -31,12 +34,14 @@ custom_components/perplexity/
 - `translations/en.json` and `translations/pl.json` must be updated for all user-facing config flow, options flow, and exception text
 
 ## Python and environment
+
 - Use the local venv in `./venv`
 - Activate with: `source venv/bin/activate`
 - `scripts/setup-local-env.sh` creates the venv (requires `python3.14`), installs `uv`, then installs dev dependencies from `requirements-dev.txt`
 - The setup script also runs `prek install`
 
 ## Linting and types
+
 - run `ruff check <files> --fix` to lint the code
 - run `ruff format <files>` to format the code
 - run `ty check <files>` to check the type annotations
@@ -45,6 +50,7 @@ custom_components/perplexity/
 - Prefer fixing root causes over silencing rules
 
 ## Home Assistant guidelines
+
 - Target Python version: 3.14
 - I/O must be asynchronous, for blocking work use `hass.async_add_executor_job`
 - Avoid blocking the event loop and `time.sleep()`, use `asyncio.sleep()` and `gather()` instead of awaiting in loops
@@ -57,6 +63,7 @@ custom_components/perplexity/
 - For config changes or repairs, follow HA patterns for config flow, diagnostics, and repairs, and keep translations updated
 
 ## Reference implementations and docs
+
 Use these as references for current Home Assistant patterns. Prefer official docs for API contracts and use core integrations as examples, not as code to copy blindly. Links to the `dev` branch are intentionally current; compare with the target Home Assistant version when investigating regressions.
 
 - Conversation entity docs: https://developers.home-assistant.io/docs/core/entity/conversation/
@@ -67,6 +74,7 @@ Use these as references for current Home Assistant patterns. Prefer official doc
 - OpenAI integration: https://github.com/home-assistant/core/tree/dev/homeassistant/components/openai_conversation
 
 ## Testing
+
 - Location: `tests/`.
 - Test snapshots location: `tests/snapshots/`.
 - Run tests with `pytest` using the active venv
@@ -89,4 +97,5 @@ Best Practices for Config Flow Testing:
   - Flow completion after errors
 
 ## Code reviews
+
 - After starting a review, do not `amend`, `squash`, or `rebase`.
