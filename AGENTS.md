@@ -61,8 +61,8 @@ Use these as references for current Home Assistant patterns. Prefer official doc
 
 - Conversation entity docs: https://developers.home-assistant.io/docs/core/entity/conversation/
 - AI Task entity docs: https://developers.home-assistant.io/docs/core/entity/ai-task/
-- OpenRouter integration: https://github.com/home-assistant/core/blob/dev/homeassistant/components/open_router/
-- Anthropic integration: https://github.com/home-assistant/core/blob/dev/homeassistant/components/anthropic/
+- OpenRouter integration: https://github.com/home-assistant/core/tree/dev/homeassistant/components/open_router/
+- Anthropic integration: https://github.com/home-assistant/core/tree/dev/homeassistant/components/anthropic/
 - Google Generative AI integration: https://github.com/home-assistant/core/tree/dev/homeassistant/components/google_generative_ai_conversation
 - OpenAI integration: https://github.com/home-assistant/core/tree/dev/homeassistant/components/openai_conversation
 
