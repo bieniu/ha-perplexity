@@ -114,7 +114,8 @@ def test_format_structured_output_without_llm_api() -> None:
     schema = vol.Schema({vol.Required("key"): str})
     result = _format_structured_output("test_name", schema, None)
 
-    assert result["type"] == "json_schema"
+    assert result
+    assert isinstance(result["json_schema"], dict)
     assert result["json_schema"]["name"] == "test_name"
     assert result["json_schema"]["strict"] is True
     assert "schema" in result["json_schema"]
@@ -129,6 +130,7 @@ def test_format_structured_output_with_llm_api() -> None:
     result = _format_structured_output("test_name", schema, mock_llm_api)
 
     assert result["type"] == "json_schema"
+    assert isinstance(result["json_schema"], dict)
     assert result["json_schema"]["name"] == "test_name"
 
 
@@ -140,6 +142,7 @@ def test_convert_content_system() -> None:
 
     result = _convert_content_to_chat_message(content)
 
+    assert result
     assert result["role"] == "system"
     assert result["content"] == "You are a helpful assistant."
 
@@ -152,6 +155,7 @@ def test_convert_content_user() -> None:
 
     result = _convert_content_to_chat_message(content)
 
+    assert result
     assert result["role"] == "user"
     assert result["content"] == "Hello!"
 
@@ -165,6 +169,7 @@ def test_convert_content_assistant() -> None:
 
     result = _convert_content_to_chat_message(content)
 
+    assert result
     assert result["role"] == "assistant"
     assert result["content"] == "Hello! How can I help?"
 
