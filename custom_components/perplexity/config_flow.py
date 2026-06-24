@@ -131,7 +131,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = await self._validate_input(user_input)
             if not errors:
-                return self.async_update_reload_and_abort(
+                return self.async_update_and_abort(
                     self._get_reauth_entry(),
                     data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
                 )
@@ -152,7 +152,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = await self._validate_input(user_input)
             if not errors:
-                return self.async_update_reload_and_abort(
+                return self.async_update_and_abort(
                     self._get_reconfigure_entry(),
                     data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
                 )
