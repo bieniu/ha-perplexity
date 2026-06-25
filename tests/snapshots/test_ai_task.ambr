@@ -22,8 +22,8 @@
 # name: test_ai_task_entity[ai_task.sonar-state]
   dict({
     'attributes': ReadOnlyDict({
-      'friendly_name': 'Sonar',
-      'supported_features': <AITaskEntityFeature.GENERATE_DATA|SUPPORT_ATTACHMENTS: 3>,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Sonar',
+      <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <AITaskEntityFeature.GENERATE_DATA|SUPPORT_ATTACHMENTS: 3>,
     }),
     'entity_id': 'ai_task.sonar',
     'state': 'unknown',
