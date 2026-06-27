@@ -11,6 +11,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "hassil",
+    "home-assistant-intents",
     "prek==0.4.5",
     "pytest-error-for-skips==2.0.2",
     "pytest-homeassistant-custom-component==0.13.341",

@@ -992,6 +992,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "hassil" },
+    { name = "home-assistant-intents" },
     { name = "prek" },
     { name = "pytest-error-for-skips" },
     { name = "pytest-homeassistant-custom-component" },
@@ -1008,6 +1009,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "hassil" },
+    { name = "home-assistant-intents" },
     { name = "prek", specifier = "==0.4.5" },
     { name = "pytest-error-for-skips", specifier = "==2.0.2" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.341" },
@@ -1103,6 +1105,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bc/6f/914fd8086f502748907751766e26e3f7fe5204347a679703ee9954e55e4d/home_assistant_bluetooth-2.0.0.tar.gz", hash = "sha256:3febd16b194812b156024d9bc8ce8ec7622cdd8d159047cac504cc77ca034ea1", size = 7604, upload-time = "2025-07-09T18:01:47.541Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/15/3e/2ed9e59da8fc26c43cbd9d6abbd27217138a31c608b1d334cc5e680e4069/home_assistant_bluetooth-2.0.0-py3-none-any.whl", hash = "sha256:8d7c2ac48c303adacad73cb6cdfe7710f2fccd2a367d4c3106acf301b0d22b91", size = 7907, upload-time = "2025-07-09T18:01:46.506Z" },
+]
+
+[[package]]
+name = "home-assistant-intents"
+version = "2026.6.24"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/5c/712241e9f2ecc36ceadc6cb422b156b24d2392b8ae9a243f1e4ffed63111/home_assistant_intents-2026.6.24.tar.gz", hash = "sha256:e7a4a05d92c8810dcde9ba9d2b263b690e38454a66d65acf4231d93180e4e17d", size = 537878, upload-time = "2026-06-24T20:48:20.048Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/c3/4219042bcf91959d5c97266878e781e3ce19308b98e1abb05bcb5dbd0df9/home_assistant_intents-2026.6.24-py3-none-any.whl", hash = "sha256:f96a29edfc9c0099d30ee8153d6b0316317580ed5dd25549eb381f984f10235b", size = 556758, upload-time = "2026-06-24T20:48:18.885Z" },
 ]
 
 [[package]]
