@@ -37,7 +37,7 @@ custom_components/perplexity/
 
 - Use the local venv in `./.venv`
 - Activate with: `source .venv/bin/activate`
-- `scripts/setup-local-env.sh` creates the venv (requires `python3.14`), installs `uv`, then installs dev dependencies from `requirements-dev.txt`
+- `scripts/setup-local-env.sh` creates the venv (requires `python3.14`), installs `uv`, then runs `uv sync` to install dependencies from `pyproject.toml`
 - The setup script also runs `prek install`
 
 ## Linting and types

@@ -18,6 +18,7 @@ jobs:
       - name: Set package version
         run: |
           version="${{ github.event.release.tag_name }}"
+          sed -i 's/^version = ".*"/version = "'"${version}"'"/' pyproject.toml
           cd "${{ github.workspace }}/custom_components/perplexity"
           sed -i "s/\"version\": \".*\"/\"version\": \"${version}\"/" manifest.json
 

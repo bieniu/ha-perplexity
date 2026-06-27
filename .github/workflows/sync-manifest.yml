@@ -3,7 +3,7 @@ name: Sync manifest.json
 on:
   pull_request:
     paths:
-      - "requirements-dev.txt"
+      - "pyproject.toml"
 
 jobs:
   sync:
@@ -20,8 +20,8 @@ jobs:
 
       - name: Sync perplexityai version to manifest.json
         run: |
-          # Extract version from requirements-dev.txt
-          VERSION=$(grep -oP 'perplexityai==\K[0-9.]+' requirements-dev.txt)
+          # Extract version from pyproject.toml
+          VERSION=$(grep -oP 'perplexityai==\K[0-9.]+' pyproject.toml)
 
           if [ -n "$VERSION" ]; then
             echo "Found perplexityai version: $VERSION"
@@ -41,5 +41,5 @@ jobs:
               git push
             fi
           else
-            echo "perplexityai not found in requirements-dev.txt"
+            echo "perplexityai not found in pyproject.toml"
           fi
