@@ -991,6 +991,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "hassil" },
     { name = "prek" },
     { name = "pytest-error-for-skips" },
     { name = "pytest-homeassistant-custom-component" },
@@ -1006,6 +1007,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "hassil" },
     { name = "prek", specifier = "==0.4.5" },
     { name = "pytest-error-for-skips", specifier = "==2.0.2" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.341" },
@@ -1076,6 +1078,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/59/40/53b290cecc71e7b12a4d8ce8b07c6a6c2da5c93ada8e19432cca0d6dde1f/hass_nabucasa-2.2.0.tar.gz", hash = "sha256:7bfaca35cf854197cdecfd2c1e41b263e3224e1abafbb58457552021bbbed6fc", size = 118895, upload-time = "2026-03-23T09:53:53.368Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/d2/997801ecfe37c620b5f980516b5b2be18b6e74f406e8e401273c777dc299/hass_nabucasa-2.2.0-py3-none-any.whl", hash = "sha256:366620278baed52e5fbf078d5262e84d401a938e14ca5c30d1aa280848ba865d", size = 90827, upload-time = "2026-03-23T09:53:51.865Z" },
+]
+
+[[package]]
+name = "hassil"
+version = "3.8.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+    { name = "unicode-rbnf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/af/7f/05b74d6a9e4e92b2daa93373f42b02298bb5fbc34bbf06b32172679b7a6c/hassil-3.8.1.tar.gz", hash = "sha256:b8eade174e29cdf2e87e64884511df8e2a2405b59723afd2ecfba5f11f951b63", size = 63894, upload-time = "2026-06-15T20:57:30.895Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/56/f5f4845cf98aeb98aa0dd40e9a4747db5142906cd61b57b8554ed1a8fe1f/hassil-3.8.1-py3-none-any.whl", hash = "sha256:9ec2e1e13ad2b9f37d6ad27beb1f878d1c023a100e9a31bd88dd64d615a3ae3b", size = 53758, upload-time = "2026-06-15T20:57:29.334Z" },
 ]
 
 [[package]]
@@ -2503,6 +2518,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/7e/4beaa80ac820b3243e376f79fde4a8bca2b477d8b6529ff5afcfd83f5f74/ulid_transform-2.2.9-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:35084b9ade29b462472485966789e5edc66dcbc376ffaf89759e7ada0c7d1f6c", size = 1058912, upload-time = "2026-05-25T05:46:10.736Z" },
     { url = "https://files.pythonhosted.org/packages/39/f8/ab3af64aa6ced7c65b09aa4b1c33d2cd4bf48646c9957a17659cea69e1c5/ulid_transform-2.2.9-cp314-cp314t-win32.whl", hash = "sha256:ccf6b173ae1e90a589935fd99176dc9d71d461c9f413b1a754d542ba2d399860", size = 25725, upload-time = "2026-05-25T05:46:12.117Z" },
     { url = "https://files.pythonhosted.org/packages/0b/c8/cbb9374e8a0e26d18e94ffb3e1f861beab5312b3e0be4fbad1bf60cdb47c/ulid_transform-2.2.9-cp314-cp314t-win_amd64.whl", hash = "sha256:fed352965a8682a156000d29e0efff8b85e7c2b8cb74f2e953a1e6d0157648b9", size = 25827, upload-time = "2026-05-25T05:46:13.164Z" },
+]
+
+[[package]]
+name = "unicode-rbnf"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/1f/d952ba97832647e608700c36b22d1c4476016076c9ed1ce74ae814bea55a/unicode_rbnf-2.4.0.tar.gz", hash = "sha256:6d2f12a7581c69ea6218ee61fafcd2da46e1f9986bdcd0964c5151f7c2a938ac", size = 89069, upload-time = "2025-10-07T20:59:41.3Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/21/82f5d435808cba330668a8b69efb180e3ef9739d4998e8cd0381e8c9cb23/unicode_rbnf-2.4.0-py3-none-any.whl", hash = "sha256:0176b30ac9b7b84008d7dc0f23078055dc10d2671fdadfab5747943243e20e2d", size = 141691, upload-time = "2025-10-07T20:59:40.139Z" },
 ]
 
 [[package]]
