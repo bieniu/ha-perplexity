@@ -996,6 +996,7 @@ dev = [
     { name = "prek" },
     { name = "pytest-error-for-skips" },
     { name = "pytest-homeassistant-custom-component" },
+    { name = "pyturbojpeg" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -1013,6 +1014,7 @@ dev = [
     { name = "prek", specifier = "==0.4.5" },
     { name = "pytest-error-for-skips", specifier = "==2.0.2" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.341" },
+    { name = "pyturbojpeg" },
     { name = "ruff", specifier = "==0.15.18" },
     { name = "ty", specifier = "==0.0.52" },
 ]
@@ -2141,6 +2143,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/87/c7/5e1547c44e31da50a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/62/02da182e544a51a5c3ccf4b03ab79df279f9c60c5e82d5e8bec7ca26ac11/python_slugify-8.0.4-py2.py3-none-any.whl", hash = "sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8", size = 10051, upload-time = "2024-02-08T18:32:43.911Z" },
 ]
+
+[[package]]
+name = "pyturbojpeg"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/aa/95/94fcf73372b327d1499c3aed5c762117349bb4a97190dbb1ec7eaf130823/pyturbojpeg-2.4.0.tar.gz", hash = "sha256:7d632be4e74c652be26bf8093501ed5784e916195735e76131def285c4d5843e", size = 33064, upload-time = "2026-06-24T15:27:15.228Z" }
 
 [[package]]
 name = "pytz"
