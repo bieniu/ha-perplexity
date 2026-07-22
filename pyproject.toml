@@ -12,12 +12,12 @@ dependencies = [
 dev = [
     "hassil",
     "home-assistant-intents",
-    "prek==0.4.9",
+    "prek==0.4.10",
     "pytest-error-for-skips==2.0.2",
     "pytest-homeassistant-custom-component==0.13.346",
     "pyturbojpeg",
-    "ruff==0.15.21",
-    "ty==0.0.59",
+    "ruff==0.15.22",
+    "ty==0.0.61",
 ]
 
 [tool.uv]
