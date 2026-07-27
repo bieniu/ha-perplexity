@@ -8,10 +8,9 @@ if ! command -v "python$PYTHON_VERSION" >/dev/null 2>&1; then
 fi
 
 if ! command -v uv >/dev/null 2>&1; then
-	"python$PYTHON_VERSION" -m pip install uv
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+	export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 fi
 
-uv venv --python "$PYTHON_VERSION" --clear
-source .venv/bin/activate
-uv sync
+uv sync --frozen --all-groups --python=$PYTHON_VERSION
 uv run prek install
