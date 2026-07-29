@@ -12,12 +12,12 @@ dependencies = [
 dev = [
     "hassil",
     "home-assistant-intents",
-    "prek==0.4.10",
+    "prek==0.4.11",
     "pytest-error-for-skips==2.0.2",
-    "pytest-homeassistant-custom-component==0.13.346",
+    "pytest-homeassistant-custom-component==0.13.348",
     "pyturbojpeg",
-    "ruff==0.15.22",
-    "ty==0.0.61",
+    "ruff==0.16.0",
+    "ty==0.0.64",
 ]
 
 [tool.uv]
@@ -37,6 +37,7 @@ lint.ignore = [
     "ARG002",   # Unused method argument
     "ARG003",   # Unused class method argument
     "COM812",   # Trailing comma missing
+    "CPY001",   # Missing copyright notice at top of file
     "D203",     # 1 blank line required before class docstring
     "D213",     # Multi-line docstring summary should start at the second line
     "EM101",    # Exception must not use a string literal, assign to variable first
@@ -44,6 +45,7 @@ lint.ignore = [
     "FBT001",   # Boolean positional arg in function definition
     "PLR0913",  # Too many arguments in function definition
     "PLR0915",  # Too many statements
+    "PLR0917",  # Too many positional arguments
     "TC001",    # Move application import into a type-checking block
     "TC002",    # Move third-party import into a type-checking block
     "TC003",    # Move standard library import into a type-checking block
