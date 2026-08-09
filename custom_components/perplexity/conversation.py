@@ -7,6 +7,10 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 from homeassistant.components import conversation
+from homeassistant.components.homeassistant.llm import (
+    NO_ENTITIES_PROMPT,
+    async_get_exposed_entities,
+)
 from homeassistant.components.intent import async_device_supports_timers
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
@@ -15,7 +19,6 @@ from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.json import json_dumps
-from homeassistant.helpers.llm import NO_ENTITIES_PROMPT, _get_exposed_entities
 from homeassistant.util import yaml as yaml_util
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads_object
 
@@ -397,7 +400,7 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
 
     async def _async_generate_entity_context(self, llm_api_ids: list[str]) -> str:
         """Generate entity context for the system prompt."""
-        exposed_entities = _get_exposed_entities(
+        exposed_entities = async_get_exposed_entities(
             self.hass, conversation.DOMAIN, include_state=True
         )
 
