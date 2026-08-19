@@ -5,7 +5,7 @@ description = "Custom Home Assistant integration for Perplexity"
 requires-python = ">=3.14.2"
 dependencies = [
     "aiofiles>=25.1.0",
-    "perplexityai==0.43.1",
+    "perplexityai==0.43.3",
 ]
 
 [dependency-groups]
