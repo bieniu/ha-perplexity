@@ -522,7 +522,7 @@ async def test_conversation_subentry_flow_without_assist(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Sonar"
     assert result["data"][CONF_MODEL] == "sonar"
-    assert CONF_LLM_HASS_API not in result["data"]
+    assert result["data"][CONF_LLM_HASS_API] == []
 
 
 async def test_conversation_subentry_flow_with_prompt(
