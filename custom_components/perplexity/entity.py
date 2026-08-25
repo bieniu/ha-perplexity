@@ -15,7 +15,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
-from voluptuous_openapi import convert
+from probatio import to_openapi
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import StreamChunk
@@ -69,7 +69,7 @@ def _format_structured_output(
             "strict": True,
         },
     }
-    result_schema = convert(
+    result_schema = to_openapi(
         schema,
         custom_serializer=(
             llm_api.custom_serializer if llm_api else llm.selector_serializer
