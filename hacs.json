@@ -1,6 +1,6 @@
 {
     "name": "Perplexity",
-    "homeassistant": "2026.8.0",
+    "homeassistant": "2026.9.0b0",
     "zip_release": true,
     "filename": "perplexity.zip"
 }
