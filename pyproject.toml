@@ -15,10 +15,10 @@ dev = [
     "home-assistant-intents",
     "prek==0.5.2",
     "pytest-error-for-skips==2.0.2",
-    "pytest-homeassistant-custom-component==0.13.363",
+    "pytest-homeassistant-custom-component==0.13.365",
     "pyturbojpeg",
-    "ruff==0.16.6",
-    "ty==0.0.78",
+    "ruff==0.16.7",
+    "ty==0.0.80",
 ]
 
 [tool.uv]
