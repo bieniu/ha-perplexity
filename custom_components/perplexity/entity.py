@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import aiofiles
-import voluptuous as vol
+import probatio
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_MODEL
@@ -59,7 +59,7 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
 
 
 def _format_structured_output(
-    name: str, schema: vol.Schema, llm_api: llm.APIInstance | None
+    name: str, schema: probatio.Schema, llm_api: llm.APIInstance | None
 ) -> dict[str, str | dict[str, Any]]:
     """Format the schema to be compatible with Perplexity API."""
     result: dict[str, str | dict[str, Any]] = {
@@ -182,7 +182,7 @@ class PerplexityEntity(Entity):
         self,
         chat_log: conversation.ChatLog,
         structure_name: str | None = None,
-        structure: vol.Schema | None = None,
+        structure: probatio.Schema | None = None,
         response_format: dict[str, Any] | None = None,
         stream_transform: Callable[
             [AsyncIterable[StreamChunk]],
