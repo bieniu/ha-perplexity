@@ -218,3 +218,6 @@ configuration.yaml
 scenes.yaml
 scripts.yaml
 secrets.yaml
+
+# omc
+.omc/
