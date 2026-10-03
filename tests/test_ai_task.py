@@ -4,8 +4,8 @@ from collections.abc import Callable
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import probatio
 import pytest
-import voluptuous as vol
 from homeassistant.components import ai_task
 from homeassistant.const import CONF_MODEL, Platform
 from homeassistant.core import HomeAssistant
@@ -129,7 +129,7 @@ async def test_ai_task_generate_data_with_structure(
         task_name="Test task",
         entity_id="ai_task.sonar",
         instructions="Test instructions",
-        structure=vol.Schema({vol.Required("key"): str}),
+        structure=probatio.Schema({probatio.Required("key"): str}),
     )
 
     assert result.data == {"key": "value"}
@@ -151,7 +151,7 @@ async def test_ai_task_generate_data_with_structure_strips_reasoning(
         task_name="Test task",
         entity_id="ai_task.sonar",
         instructions="Test instructions",
-        structure=vol.Schema({vol.Required("key"): str}),
+        structure=probatio.Schema({probatio.Required("key"): str}),
     )
 
     assert result.data == {"key": "value"}
@@ -176,7 +176,7 @@ async def test_ai_task_generate_data_invalid_json(
             task_name="Test task",
             entity_id="ai_task.sonar",
             instructions="Test instructions",
-            structure=vol.Schema({vol.Required("key"): str}),
+            structure=probatio.Schema({probatio.Required("key"): str}),
         )
 
 
