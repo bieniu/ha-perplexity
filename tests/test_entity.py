@@ -3,8 +3,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import probatio
 import pytest
-import voluptuous as vol
 from homeassistant.components import ai_task, conversation
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -111,7 +111,7 @@ def test_adjust_schema_nested_objects() -> None:
 
 def test_format_structured_output_without_llm_api() -> None:
     """Test _format_structured_output without LLM API."""
-    schema = vol.Schema({vol.Required("key"): str})
+    schema = probatio.Schema({probatio.Required("key"): str})
     result = _format_structured_output("test_name", schema, None)
 
     assert result
@@ -123,7 +123,7 @@ def test_format_structured_output_without_llm_api() -> None:
 
 def test_format_structured_output_with_llm_api() -> None:
     """Test _format_structured_output with LLM API."""
-    schema = vol.Schema({vol.Required("key"): str})
+    schema = probatio.Schema({probatio.Required("key"): str})
     mock_llm_api = MagicMock()
     mock_llm_api.custom_serializer = llm.selector_serializer
 
@@ -192,7 +192,9 @@ def test_convert_content_tool_result_skipped() -> None:
         agent_id="test_agent",
         tool_call_id="call_123",
         tool_name="HassTurnOn",
-        tool_result={"speech": {"plain": {"speech": "Done", "extra_data": None}}},
+        result=llm.ToolResult(
+            data={"speech": {"plain": {"speech": "Done", "extra_data": None}}}
+        ),
     )
 
     result = _convert_content_to_chat_message(content)

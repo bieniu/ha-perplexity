@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-import voluptuous as vol
+import probatio
 from homeassistant.config_entries import (
     SOURCE_USER,
     ConfigEntry,
@@ -106,9 +106,9 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_API_KEY): str,
+                    probatio.Required(CONF_API_KEY): str,
                 }
             ),
             errors=errors,
@@ -138,7 +138,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=probatio.Schema({probatio.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
@@ -159,7 +159,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            data_schema=probatio.Schema({probatio.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
@@ -180,9 +180,9 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_MODEL, default=RECOMMENDED_CHAT_MODEL): (
+                    probatio.Required(CONF_MODEL, default=RECOMMENDED_CHAT_MODEL): (
                         SelectSelector(
                             SelectSelectorConfig(
                                 options=[
@@ -213,8 +213,8 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
 
         current_web_search = subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
 
-        schema: dict[vol.Marker, Any] = {
-            vol.Required(CONF_WEB_SEARCH, default=current_web_search): bool,
+        schema: dict[probatio.Marker, Any] = {
+            probatio.Required(CONF_WEB_SEARCH, default=current_web_search): bool,
         }
 
         # Add reasoning effort option only for reasoning models
@@ -224,7 +224,7 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
             )
             schema.update(
                 {
-                    vol.Required(
+                    probatio.Required(
                         CONF_REASONING_EFFORT, default=current_reasoning_effort
                     ): SelectSelector(
                         SelectSelectorConfig(
@@ -238,7 +238,7 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema(schema),
+            data_schema=probatio.Schema(schema),
         )
 
 
@@ -305,8 +305,8 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
 
         model = self.options.get(CONF_MODEL, RECOMMENDED_CHAT_MODEL)
 
-        schema: dict[vol.Marker, Any] = {
-            vol.Required(
+        schema: dict[probatio.Marker, Any] = {
+            probatio.Required(
                 CONF_MODEL,
                 default=model,
             ): SelectSelector(
@@ -318,7 +318,7 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                     mode=SelectSelectorMode.DROPDOWN,
                 ),
             ),
-            vol.Optional(
+            probatio.Optional(
                 CONF_PROMPT,
                 description={
                     "suggested_value": self.options.get(
@@ -327,18 +327,18 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                     )
                 },
             ): TemplateSelector(),
-            vol.Optional(
+            probatio.Optional(
                 CONF_LLM_HASS_API,
                 default=self.options.get(CONF_LLM_HASS_API, []),
             ): SelectSelector(SelectSelectorConfig(options=hass_apis, multiple=True)),
-            vol.Required(
+            probatio.Required(
                 CONF_WEB_SEARCH,
                 default=self.options.get(
                     CONF_WEB_SEARCH,
                     RECOMMENDED_CONVERSATION_OPTIONS[CONF_WEB_SEARCH],
                 ),
             ): bool,
-            vol.Required(
+            probatio.Required(
                 CONF_INCLUDE_HOME_LOCATION,
                 default=self.options.get(
                     CONF_INCLUDE_HOME_LOCATION,
@@ -349,7 +349,7 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
 
         if model in REASONING_MODELS:
             schema[
-                vol.Required(
+                probatio.Required(
                     CONF_REASONING_EFFORT,
                     default=self.options.get(
                         CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
@@ -365,5 +365,5 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(schema),
+            data_schema=probatio.Schema(schema),
         )
