@@ -8,6 +8,7 @@
     'has_entity_name': True,
     'icon': None,
     'name': None,
+    'next_name_part': <NextNamePart.DEVICE: 'device'>,
     'options': ReadOnlyDict({
       'conversation': ReadOnlyDict({
         'should_expose': False,
