@@ -13,11 +13,11 @@ dev = [
     "gazetteer-matcher",
     "hassil",
     "home-assistant-intents",
-    "prek==0.5.3",
+    "prek==0.5.4",
     "pytest-error-for-skips==2.0.2",
     "pytest-homeassistant-custom-component==0.13.368",
     "pyturbojpeg",
-    "ruff==0.16.9",
+    "ruff==0.16.10",
     "ty==0.0.84",
 ]
 
