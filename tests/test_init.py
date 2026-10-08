@@ -18,6 +18,24 @@ async def test_async_setup_entry_success(
     assert mock_setup_entry.runtime_data is mock_perplexity_client
 
 
+async def test_async_setup_entry_sends_integration_header(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test the client identifies the integration to the Perplexity API."""
+    with patch(
+        "custom_components.perplexity.AsyncPerplexity",
+        return_value=mock_perplexity_client,
+    ) as mock_client:
+        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert mock_client.call_args.kwargs["default_headers"] == {
+        "X-Pplx-Integration": "ha-perplexity"
+    }
+
+
 async def test_async_setup_entry_auth_error(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
