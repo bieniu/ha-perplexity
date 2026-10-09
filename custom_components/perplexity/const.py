@@ -20,7 +20,6 @@ DEFAULT_WEB_SEARCH = False
 
 MIN_MAX_TOKENS = 16
 
-# Identifies this integration to the Perplexity API for attribution
 INTEGRATION_HEADERS = {"X-Pplx-Integration": "ha-perplexity"}
 
 TIMERS_UNSUPPORTED = "This device is not able to start timers."

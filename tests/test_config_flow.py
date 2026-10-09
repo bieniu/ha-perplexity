@@ -34,7 +34,7 @@ async def test_user_flow_success(
     with patch(
         "custom_components.perplexity.config_flow.AsyncPerplexity",
         return_value=mock_perplexity_client,
-    ):
+    ) as mock_client:
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={CONF_API_KEY: "test_api_key"},
@@ -43,6 +43,9 @@ async def test_user_flow_success(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Perplexity"
     assert result["data"] == {CONF_API_KEY: "test_api_key"}
+    assert mock_client.call_args.kwargs["default_headers"] == {
+        "X-Pplx-Integration": "ha-perplexity"
+    }
 
 
 async def test_user_flow_invalid_auth(
