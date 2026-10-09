@@ -35,6 +35,7 @@ from .const import (
     DEFAULT_REASONING_EFFORT,
     DEFAULT_WEB_SEARCH,
     DOMAIN,
+    INTEGRATION_HEADERS,
     LOGGER,
     MIN_MAX_TOKENS,
     PERPLEXITY_MODELS,
@@ -73,6 +74,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             client = AsyncPerplexity(
                 api_key=user_input[CONF_API_KEY],
                 http_client=get_async_client(self.hass),
+                default_headers=INTEGRATION_HEADERS,
             )
             await client.chat.completions.create(
                 model="sonar",

@@ -8,7 +8,7 @@ from homeassistant.helpers.httpx_client import get_async_client
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN, MIN_MAX_TOKENS
+from .const import DOMAIN, INTEGRATION_HEADERS, MIN_MAX_TOKENS
 
 PLATFORMS = [Platform.AI_TASK, Platform.CONVERSATION]
 
@@ -20,6 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
     client = AsyncPerplexity(
         api_key=entry.data[CONF_API_KEY],
         http_client=get_async_client(hass),
+        default_headers=INTEGRATION_HEADERS,
     )
 
     # Cache current platform data which gets added to each request (caching done by
