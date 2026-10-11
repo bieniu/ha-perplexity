@@ -1,6 +1,7 @@
 """Tests for the Perplexity Conversation entity."""
 
-from collections.abc import Callable
+import copy
+from collections.abc import AsyncGenerator, Callable
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,11 +18,13 @@ from pytest_homeassistant_custom_component.common import (
 from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import (
+    ACTION_RESPONSE_SCHEMA,
     CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
     CONF_WEB_SEARCH,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
+    WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 from custom_components.perplexity.conversation import (
     ParsedAction,
@@ -30,7 +33,7 @@ from custom_components.perplexity.conversation import (
     _parse_json_response,
 )
 
-CONVERSATION_ENTITY_ID = "conversation.sonar"
+CONVERSATION_ENTITY_ID = "conversation.fast"
 
 
 async def test_conversation_entity(
@@ -90,7 +93,7 @@ async def test_conversation_without_actions(
     mock_stream: MagicMock,
 ) -> None:
     """Test basic conversation without actions."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("Hello! How can I help you today?")
     )
 
@@ -129,9 +132,13 @@ async def test_conversation_with_actions(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_stream(json_response)
-    )
+    sent_kwargs: list[dict[str, Any]] = []
+
+    async def _create(**kwargs: object) -> AsyncGenerator[MagicMock]:
+        sent_kwargs.append(copy.deepcopy(kwargs))
+        return mock_stream(json_response)
+
+    mock_perplexity_client.responses.create = AsyncMock(side_effect=_create)
 
     result = await conversation.async_converse(
         hass,
@@ -152,20 +159,23 @@ async def test_conversation_with_actions(
     assert "turned on" in result.response.speech["plain"]["speech"].lower()
 
     # Verify chat arguments
-    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
-    assert call_args["model"] == "sonar"
-    assert call_args["disable_search"] is True
+    assert len(sent_kwargs) == 1
+    call_args = sent_kwargs[0]
+    assert call_args["preset"] == "fast"
+    assert call_args["tool_choice"] == "none"
     assert call_args["stream"] is True
+    assert call_args["response_format"] == ACTION_RESPONSE_SCHEMA
 
-    messages = call_args["messages"]
     assert (
         "light.living_room:\n  names: living room\n  domain: light\n  state: 'off'"
-    ) in messages[0]["content"]
-    assert messages[1] == {"role": "user", "content": "Turn on the living room light"}
-    assert messages[2] == {
-        "role": "assistant",
-        "content": "I've turned on the living room light for you.",
-    }
+    ) in call_args["instructions"]
+    assert call_args["input"] == [
+        {
+            "type": "message",
+            "role": "user",
+            "content": "Turn on the living room light",
+        },
+    ]
 
 
 async def test_conversation_with_actions_and_data(
@@ -191,7 +201,7 @@ async def test_conversation_with_actions_and_data(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -221,16 +231,17 @@ async def test_conversation_web_search_enabled(
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
+        version=2,
         data={"api_key": "test_api_key"},
         subentries_data=[
             {
                 "data": {
-                    CONF_MODEL: "sonar",
+                    CONF_MODEL: "fast",
                     CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                 },
                 "subentry_type": SUBENTRY_TYPE_CONVERSATION,
-                "title": "Sonar",
+                "title": "Fast",
                 "subentry_id": "ulid-conversation-web",
                 "unique_id": None,
             },
@@ -245,7 +256,7 @@ async def test_conversation_web_search_enabled(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("Web search result")
     )
 
@@ -254,13 +265,43 @@ async def test_conversation_web_search_enabled(
         "What is the weather?",
         None,
         Context(),
-        agent_id="conversation.sonar",
+        agent_id="conversation.fast",
     )
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
-    call_kwargs = mock_perplexity_client.chat.completions.create.call_args.kwargs
-    assert call_kwargs["disable_search"] is False
+    call_kwargs = mock_perplexity_client.responses.create.call_args.kwargs
+    assert "tool_choice" not in call_kwargs
+    assert call_kwargs["instructions"].startswith("You are helpful.")
+    assert call_kwargs["instructions"].endswith(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
+
+
+async def test_conversation_stream_failed(
+    hass: HomeAssistant,
+    mock_perplexity_client: MagicMock,
+    mock_setup_entry: MockConfigEntry,
+) -> None:
+    """Test conversation raises when the stream reports a failed response."""
+
+    async def _failed_stream() -> AsyncGenerator[MagicMock]:
+        failed = MagicMock(type="response.failed")
+        failed.error.message = "Something broke"
+        yield failed
+
+    mock_perplexity_client.responses.create = AsyncMock(return_value=_failed_stream())
+
+    result = await conversation.async_converse(
+        hass,
+        "Hello",
+        None,
+        Context(),
+        agent_id=CONVERSATION_ENTITY_ID,
+    )
+
+    assert result.response.response_type == intent.IntentResponseType.ERROR
+    assert result.response.speech["plain"]["speech"] == (
+        "Error talking to Perplexity API for Perplexity: Something broke"
+    )
 
 
 async def test_conversation_with_multiple_actions(
@@ -293,7 +334,7 @@ async def test_conversation_with_multiple_actions(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -325,7 +366,7 @@ async def test_conversation_with_null_actions(
             "actions": None,
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -404,7 +445,7 @@ async def test_conversation_extra_system_prompt(
             "actions": None,
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -444,7 +485,7 @@ async def test_conversation_with_delayed_action(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -485,17 +526,18 @@ async def test_conversation_with_home_location(
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
+        version=2,
         data={"api_key": "test_api_key"},
         subentries_data=[
             {
                 "data": {
-                    CONF_MODEL: "sonar",
+                    CONF_MODEL: "fast",
                     CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                     CONF_INCLUDE_HOME_LOCATION: True,
                 },
                 "subentry_type": SUBENTRY_TYPE_CONVERSATION,
-                "title": "Sonar",
+                "title": "Fast",
                 "subentry_id": "ulid-conversation-web",
                 "unique_id": None,
             },
@@ -510,7 +552,7 @@ async def test_conversation_with_home_location(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("The weather in London is nice today.")
     )
 
@@ -524,8 +566,8 @@ async def test_conversation_with_home_location(
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
-    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
-    system_content = call_args["messages"][0]["content"]
+    call_args = mock_perplexity_client.responses.create.call_args[1]
+    system_content = call_args["instructions"]
 
     assert "Coordinates: 51.507,-0.128" in system_content
     assert "Country: GB" in system_content
@@ -544,17 +586,18 @@ async def test_conversation_with_home_location_no_country(
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
+        version=2,
         data={"api_key": "test_api_key"},
         subentries_data=[
             {
                 "data": {
-                    CONF_MODEL: "sonar",
+                    CONF_MODEL: "fast",
                     CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                     CONF_INCLUDE_HOME_LOCATION: True,
                 },
                 "subentry_type": SUBENTRY_TYPE_CONVERSATION,
-                "title": "Sonar",
+                "title": "Fast",
                 "subentry_id": "ulid-conversation-web",
                 "unique_id": None,
             },
@@ -569,7 +612,7 @@ async def test_conversation_with_home_location_no_country(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("The weather in London is nice today.")
     )
 
@@ -583,8 +626,8 @@ async def test_conversation_with_home_location_no_country(
 
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
-    call_args = mock_perplexity_client.chat.completions.create.call_args[1]
-    system_content = call_args["messages"][0]["content"]
+    call_args = mock_perplexity_client.responses.create.call_args[1]
+    system_content = call_args["instructions"]
 
     assert "Coordinates: 51.507,-0.128" in system_content
     assert "Country" not in system_content
@@ -610,7 +653,7 @@ async def test_conversation_with_timer_action(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -645,7 +688,7 @@ async def test_conversation_with_increase_timer_action(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 
@@ -679,7 +722,7 @@ async def test_conversation_timer_action_handle_error(
             ],
         }
     )
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream(json_response)
     )
 

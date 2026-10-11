@@ -7,11 +7,11 @@
     'subentries': dict({
       'ulid-ai-task': dict({
         'data': dict({
-          'model': 'sonar',
+          'model': 'fast',
         }),
         'subentry_id': 'ulid-ai-task',
         'subentry_type': 'ai_task_data',
-        'title': 'Sonar',
+        'title': 'Fast',
         'unique_id': None,
       }),
       'ulid-conversation': dict({
@@ -19,12 +19,12 @@
           'llm_hass_api': list([
             'assist',
           ]),
-          'model': 'sonar',
+          'model': 'fast',
           'prompt': 'instruction',
         }),
         'subentry_id': 'ulid-conversation',
         'subentry_type': 'conversation',
-        'title': 'Sonar',
+        'title': 'Fast',
         'unique_id': None,
       }),
     }),

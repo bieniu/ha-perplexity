@@ -1,5 +1,6 @@
 """Tests for the Perplexity entity module."""
 
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -16,9 +17,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.perplexity.const import DOMAIN
 from custom_components.perplexity.entity import (
     _adjust_schema,
+    _async_iter_text_deltas,
     _async_prepare_files_for_prompt,
-    _convert_content_to_chat_message,
+    _convert_content_to_input_message,
     _format_structured_output,
+    _transform_stream,
 )
 
 
@@ -134,83 +137,142 @@ def test_format_structured_output_with_llm_api() -> None:
     assert result["json_schema"]["name"] == "test_name"
 
 
-def test_convert_content_system() -> None:
-    """Test _convert_content_to_chat_message with system content."""
-    content = conversation.SystemContent(
-        content="You are a helpful assistant.",
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result
-    assert result["role"] == "system"
-    assert result["content"] == "You are a helpful assistant."
-
-
-def test_convert_content_user() -> None:
-    """Test _convert_content_to_chat_message with user content."""
-    content = conversation.UserContent(
-        content="Hello!",
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result
-    assert result["role"] == "user"
-    assert result["content"] == "Hello!"
-
-
-def test_convert_content_assistant() -> None:
-    """Test _convert_content_to_chat_message with assistant content."""
-    content = conversation.AssistantContent(
-        agent_id="test_agent",
-        content="Hello! How can I help?",
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result
-    assert result["role"] == "assistant"
-    assert result["content"] == "Hello! How can I help?"
-
-
-def test_convert_content_assistant_none_content() -> None:
-    """Test _convert_content_to_chat_message with assistant content=None."""
-    content = conversation.AssistantContent(
-        agent_id="test_agent",
-        content=None,
-    )
-
-    result = _convert_content_to_chat_message(content)
-
-    assert result is None
-
-
-def test_convert_content_tool_result_skipped() -> None:
-    """Test _convert_content_to_chat_message skips ToolResultContent with a warning."""
-    content = conversation.ToolResultContent(
-        agent_id="test_agent",
-        tool_call_id="call_123",
-        tool_name="HassTurnOn",
-        result=llm.ToolResult(
-            data={"speech": {"plain": {"speech": "Done", "extra_data": None}}}
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        (conversation.SystemContent(content="You are a helpful assistant."), None),
+        (
+            conversation.UserContent(content="Hello!"),
+            {"type": "message", "role": "user", "content": "Hello!"},
         ),
+        (
+            conversation.AssistantContent(
+                agent_id="test_agent", content="Hello! How can I help?"
+            ),
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": "Hello! How can I help?",
+            },
+        ),
+        (conversation.AssistantContent(agent_id="test_agent", content=None), None),
+        (
+            conversation.ToolResultContent(
+                agent_id="test_agent",
+                tool_call_id="call_123",
+                tool_name="HassTurnOn",
+                result=llm.ToolResult(
+                    data={"speech": {"plain": {"speech": "Done", "extra_data": None}}}
+                ),
+            ),
+            None,
+        ),
+        (MagicMock(role="unknown", content="test"), None),
+    ],
+)
+def test_convert_content_to_input_message(
+    content: conversation.Content, expected: dict[str, str] | None
+) -> None:
+    """Test converting chat log content to Agent API input messages."""
+    assert _convert_content_to_input_message(content) == expected
+
+
+def _chunk(chunk_type: str, delta: str | None = None) -> MagicMock:
+    """Return a mock stream chunk."""
+    chunk = MagicMock(type=chunk_type, delta=delta)
+    if chunk_type == "response.failed":
+        chunk.error.message = "Rate limited"
+    return chunk
+
+
+async def _as_stream(chunks: list[MagicMock]) -> AsyncGenerator[MagicMock]:
+    """Yield the given chunks as an async stream."""
+    for chunk in chunks:
+        yield chunk
+
+
+async def test_async_iter_text_deltas_ignores_other_events() -> None:
+    """Test only text delta events are yielded."""
+    stream = _as_stream(
+        [
+            _chunk("response.created"),
+            _chunk("response.output_text.delta", delta="Hello"),
+            _chunk("response.reasoning.started"),
+            _chunk("response.output_text.delta", delta=" world"),
+            _chunk("response.completed"),
+        ]
     )
 
-    result = _convert_content_to_chat_message(content)
+    assert [d async for d in _async_iter_text_deltas(stream, "Perplexity")] == [
+        "Hello",
+        " world",
+    ]
 
-    assert result is None
+
+@pytest.mark.parametrize(
+    ("chunks", "expected"),
+    [
+        (
+            [
+                _chunk("response.created"),
+                _chunk("response.output_text.delta", delta="Hi"),
+                _chunk("response.output_text.delta", delta="!"),
+            ],
+            [{"role": "assistant"}, {"content": "Hi"}, {"content": "!"}],
+        ),
+        ([_chunk("response.created"), _chunk("response.completed")], []),
+    ],
+)
+async def test_transform_stream(
+    chunks: list[MagicMock], expected: list[dict[str, str]]
+) -> None:
+    """Test the assistant role is only emitted once text arrives."""
+    assert [
+        d async for d in _transform_stream(_as_stream(chunks), "Perplexity")
+    ] == expected
 
 
-def test_convert_content_unknown_role() -> None:
-    """Test _convert_content_to_chat_message with unknown role."""
-    content = MagicMock()
-    content.role = "unknown"
-    content.content = "test"
+async def test_async_iter_text_deltas_sdk_error() -> None:
+    """Test an SDK error raised mid-stream becomes an API error."""
 
-    result = _convert_content_to_chat_message(content)
+    async def _stream() -> AsyncGenerator[MagicMock]:
+        yield _chunk("response.output_text.delta", delta="partial")
+        raise PerplexityError("boom")
 
-    assert result is None
+    with pytest.raises(HomeAssistantError) as exc_info:
+        _ = [d async for d in _async_iter_text_deltas(_stream(), "Perplexity")]
+
+    assert exc_info.value.translation_key == "api_error"
+    assert exc_info.value.translation_placeholders == {
+        "entry": "Perplexity",
+        "error": "boom",
+    }
+
+
+@pytest.mark.parametrize("use_transform", [False, True])
+async def test_stream_response_failed(use_transform: bool) -> None:
+    """Test a failed response event raises an API error."""
+    stream = _as_stream(
+        [
+            _chunk("response.output_text.delta", delta="partial"),
+            _chunk("response.failed"),
+            _chunk("response.output_text.delta", delta="never"),
+        ]
+    )
+    gen = (
+        _transform_stream(stream, "Perplexity")
+        if use_transform
+        else _async_iter_text_deltas(stream, "Perplexity")
+    )
+
+    with pytest.raises(HomeAssistantError) as exc_info:
+        _ = [d async for d in gen]
+
+    assert exc_info.value.translation_key == "api_error"
+    assert exc_info.value.translation_placeholders == {
+        "entry": "Perplexity",
+        "error": "Rate limited",
+    }
 
 
 async def test_async_prepare_files_for_prompt_file_not_exists(
@@ -253,8 +315,8 @@ async def test_async_prepare_files_for_prompt_success(
     result = await _async_prepare_files_for_prompt([(test_file, "image/png")])
 
     assert len(result) == 1
-    assert result[0]["type"] == "image_url"
-    assert result[0]["image_url"]["url"].startswith("data:image/png;base64,")
+    assert result[0]["type"] == "input_image"
+    assert result[0]["image_url"].startswith("data:image/png;base64,")
 
 
 async def test_async_prepare_files_for_prompt_auto_mime_type(
@@ -275,8 +337,8 @@ async def test_async_prepare_files_for_prompt_auto_mime_type(
     result = await _async_prepare_files_for_prompt([(test_file, None)])
 
     assert len(result) == 1
-    assert result[0]["type"] == "image_url"
-    assert "base64," in result[0]["image_url"]["url"]
+    assert result[0]["type"] == "input_image"
+    assert "base64," in result[0]["image_url"]
 
 
 async def test_ai_task_api_error(
@@ -285,15 +347,13 @@ async def test_ai_task_api_error(
     mock_perplexity_client: MagicMock,
 ) -> None:
     """Test AI task with Perplexity API error."""
-    mock_perplexity_client.chat.completions.create.side_effect = PerplexityError(
-        "API Error"
-    )
+    mock_perplexity_client.responses.create.side_effect = PerplexityError("API Error")
 
     with pytest.raises(HomeAssistantError, match="Error talking to Perplexity API"):
         await ai_task.async_generate_data(
             hass,
             task_name="Test task",
-            entity_id="ai_task.sonar",
+            entity_id="ai_task.fast",
             instructions="Test instructions",
         )
 
@@ -304,7 +364,7 @@ async def test_ai_task_authentication_error(
     mock_perplexity_client: MagicMock,
 ) -> None:
     """Test AI task with authentication error."""
-    mock_perplexity_client.chat.completions.create.side_effect = AuthenticationError(
+    mock_perplexity_client.responses.create.side_effect = AuthenticationError(
         "Invalid API key", response=MagicMock(), body=None
     )
 
@@ -312,7 +372,7 @@ async def test_ai_task_authentication_error(
         await ai_task.async_generate_data(
             hass,
             task_name="Test task",
-            entity_id="ai_task.sonar",
+            entity_id="ai_task.fast",
             instructions="Test instructions",
         )
 

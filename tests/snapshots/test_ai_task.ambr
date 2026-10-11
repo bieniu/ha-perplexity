@@ -1,10 +1,10 @@
 # serializer version: 1
-# name: test_ai_task_entity[ai_task.sonar-entry]
+# name: test_ai_task_entity[ai_task.fast-entry]
   dict({
     'config_subentry_id': 'ulid-ai-task',
     'disabled_by': None,
     'entity_category': None,
-    'entity_id': 'ai_task.sonar',
+    'entity_id': 'ai_task.fast',
     'has_entity_name': True,
     'icon': None,
     'name': None,
@@ -20,13 +20,13 @@
     'unique_id': 'ulid-ai-task',
   })
 # ---
-# name: test_ai_task_entity[ai_task.sonar-state]
+# name: test_ai_task_entity[ai_task.fast-state]
   dict({
     'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Sonar',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Fast',
       <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <AITaskEntityFeature.GENERATE_DATA|SUPPORT_ATTACHMENTS: 3>,
     }),
-    'entity_id': 'ai_task.sonar',
+    'entity_id': 'ai_task.fast',
     'state': 'unknown',
   })
 # ---
