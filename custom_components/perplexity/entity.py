@@ -2,6 +2,7 @@
 
 import base64
 from collections.abc import AsyncGenerator, AsyncIterable, Callable
+from functools import partial
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -29,8 +30,14 @@ from .const import (
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
-# Max number of back and forth with the LLM to generate a response
-MAX_TOOL_ITERATIONS = 10
+
+def _api_error(entry_title: str, error: str) -> HomeAssistantError:
+    """Build the translated API error."""
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="api_error",
+        translation_placeholders={"entry": entry_title, "error": error},
+    )
 
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
@@ -102,20 +109,9 @@ async def _async_iter_text_deltas(
             if chunk.type == "response.output_text.delta":
                 yield chunk.delta
             elif chunk.type == "response.failed":
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="api_error",
-                    translation_placeholders={
-                        "entry": entry_title,
-                        "error": chunk.error.message,
-                    },
-                )
+                raise _api_error(entry_title, chunk.error.message)
     except PerplexityError as err:
-        raise HomeAssistantError(
-            translation_domain=DOMAIN,
-            translation_key="api_error",
-            translation_placeholders={"entry": entry_title, "error": str(err)},
-        ) from err
+        raise _api_error(entry_title, str(err)) from err
 
 
 async def _transform_stream(
@@ -198,7 +194,6 @@ class PerplexityEntity(Entity):
             AsyncGenerator[conversation.AssistantContentDeltaDict],
         ]
         | None = None,
-        max_iterations: int = MAX_TOOL_ITERATIONS,
     ) -> None:
         """Generate an answer for the chat log."""
         web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
@@ -260,39 +255,22 @@ class PerplexityEntity(Entity):
 
         client: AsyncPerplexity = self.entry.runtime_data
 
-        for _iteration in range(max_iterations):
-            try:
-                stream = await client.responses.create(**model_args)
-            except AuthenticationError as err:
-                self.entry.async_start_reauth(self.hass)
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="auth_error",
-                    translation_placeholders={"entry": self.entry.title},
-                ) from err
-            except PerplexityError as err:
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="api_error",
-                    translation_placeholders={
-                        "entry": self.entry.title,
-                        "error": str(err),
-                    },
-                ) from err
+        try:
+            stream = await client.responses.create(**model_args)
+        except AuthenticationError as err:
+            self.entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="auth_error",
+                translation_placeholders={"entry": self.entry.title},
+            ) from err
+        except PerplexityError as err:
+            raise _api_error(self.entry.title, str(err)) from err
 
-            deltas = (
-                stream_transform(stream)
-                if stream_transform
-                else _transform_stream(stream, self.entry.title)
-            )
-            model_args["input"].extend(
-                [
-                    msg
-                    async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, deltas
-                    )
-                    if (msg := _convert_content_to_input_message(content))
-                ]
-            )
-            if not chat_log.unresponded_tool_results:
-                break
+        transform = stream_transform or partial(
+            _transform_stream, entry_title=self.entry.title
+        )
+        async for _ in chat_log.async_add_delta_content_stream(
+            self.entity_id, transform(stream)
+        ):
+            pass

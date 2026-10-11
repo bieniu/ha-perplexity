@@ -265,20 +265,33 @@ async def test_ai_task_request_args(
     }
 
 
-async def test_ai_task_stream_failed(
+async def _failed_stream() -> AsyncGenerator[MagicMock]:
+    """Yield a partial delta, then a failed response event."""
+    yield MagicMock(type="response.output_text.delta", delta="partial")
+    failed = MagicMock(type="response.failed")
+    failed.error.message = "Something broke"
+    yield failed
+
+
+async def _broken_stream() -> AsyncGenerator[MagicMock]:
+    """Yield a partial delta, then fail with an SDK error."""
+    yield MagicMock(type="response.output_text.delta", delta="partial")
+    raise PerplexityError("Connection lost")
+
+
+@pytest.mark.parametrize(
+    ("stream_factory", "error"),
+    [(_failed_stream, "Something broke"), (_broken_stream, "Connection lost")],
+)
+async def test_ai_task_stream_error(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    stream_factory: Callable[[], AsyncGenerator[MagicMock]],
+    error: str,
 ) -> None:
-    """Test AI task raises when the stream reports a failed response."""
-
-    async def _failed_stream() -> AsyncGenerator[MagicMock]:
-        yield MagicMock(type="response.output_text.delta", delta="partial")
-        failed = MagicMock(type="response.failed")
-        failed.error.message = "Something broke"
-        yield failed
-
-    mock_perplexity_client.responses.create = AsyncMock(return_value=_failed_stream())
+    """Test AI task raises when the stream fails mid-response."""
+    mock_perplexity_client.responses.create = AsyncMock(return_value=stream_factory())
 
     with pytest.raises(
         HomeAssistantError, match="Error talking to Perplexity API"
@@ -293,37 +306,7 @@ async def test_ai_task_stream_failed(
     assert exc_info.value.translation_key == "api_error"
     assert exc_info.value.translation_placeholders == {
         "entry": "Perplexity",
-        "error": "Something broke",
-    }
-
-
-async def test_ai_task_stream_sdk_error(
-    hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-) -> None:
-    """Test AI task raises when the SDK fails mid-stream."""
-
-    async def _broken_stream() -> AsyncGenerator[MagicMock]:
-        yield MagicMock(type="response.output_text.delta", delta="partial")
-        raise PerplexityError("Connection lost")
-
-    mock_perplexity_client.responses.create = AsyncMock(return_value=_broken_stream())
-
-    with pytest.raises(
-        HomeAssistantError, match="Error talking to Perplexity API"
-    ) as exc_info:
-        await ai_task.async_generate_data(
-            hass,
-            task_name="Test task",
-            entity_id="ai_task.fast",
-            instructions="Test instructions",
-        )
-
-    assert exc_info.value.translation_key == "api_error"
-    assert exc_info.value.translation_placeholders == {
-        "entry": "Perplexity",
-        "error": "Connection lost",
+        "error": error,
     }
 
 

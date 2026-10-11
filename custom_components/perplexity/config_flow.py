@@ -205,10 +205,11 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
         subentry = self._get_reconfigure_subentry()
 
         if user_input is not None:
-            data = {**subentry.data, **user_input}
-            if CONF_REASONING_EFFORT not in user_input:
-                data.pop(CONF_REASONING_EFFORT, None)
-            return self.async_update_and_abort(self._get_entry(), subentry, data=data)
+            return self.async_update_and_abort(
+                self._get_entry(),
+                subentry,
+                data={CONF_MODEL: subentry.data[CONF_MODEL], **user_input},
+            )
 
         schema: dict[probatio.Marker, Any] = {
             probatio.Required(

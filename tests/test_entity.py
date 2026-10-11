@@ -179,10 +179,7 @@ def test_convert_content_to_input_message(
 
 def _chunk(chunk_type: str, delta: str | None = None) -> MagicMock:
     """Return a mock stream chunk."""
-    chunk = MagicMock(type=chunk_type, delta=delta)
-    if chunk_type == "response.failed":
-        chunk.error.message = "Rate limited"
-    return chunk
+    return MagicMock(type=chunk_type, delta=delta)
 
 
 async def _as_stream(chunks: list[MagicMock]) -> AsyncGenerator[MagicMock]:
@@ -230,49 +227,6 @@ async def test_transform_stream(
     assert [
         d async for d in _transform_stream(_as_stream(chunks), "Perplexity")
     ] == expected
-
-
-async def test_async_iter_text_deltas_sdk_error() -> None:
-    """Test an SDK error raised mid-stream becomes an API error."""
-
-    async def _stream() -> AsyncGenerator[MagicMock]:
-        yield _chunk("response.output_text.delta", delta="partial")
-        raise PerplexityError("boom")
-
-    with pytest.raises(HomeAssistantError) as exc_info:
-        _ = [d async for d in _async_iter_text_deltas(_stream(), "Perplexity")]
-
-    assert exc_info.value.translation_key == "api_error"
-    assert exc_info.value.translation_placeholders == {
-        "entry": "Perplexity",
-        "error": "boom",
-    }
-
-
-@pytest.mark.parametrize("use_transform", [False, True])
-async def test_stream_response_failed(use_transform: bool) -> None:
-    """Test a failed response event raises an API error."""
-    stream = _as_stream(
-        [
-            _chunk("response.output_text.delta", delta="partial"),
-            _chunk("response.failed"),
-            _chunk("response.output_text.delta", delta="never"),
-        ]
-    )
-    gen = (
-        _transform_stream(stream, "Perplexity")
-        if use_transform
-        else _async_iter_text_deltas(stream, "Perplexity")
-    )
-
-    with pytest.raises(HomeAssistantError) as exc_info:
-        _ = [d async for d in gen]
-
-    assert exc_info.value.translation_key == "api_error"
-    assert exc_info.value.translation_placeholders == {
-        "entry": "Perplexity",
-        "error": "Rate limited",
-    }
 
 
 async def test_async_prepare_files_for_prompt_file_not_exists(

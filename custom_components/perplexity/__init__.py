@@ -80,14 +80,9 @@ async def async_migrate_entry(
     """Migrate old config entries."""
     if entry.version == 1:
         for subentry in entry.subentries.values():
-            model = subentry.data.get(CONF_MODEL)
-            if model in LEGACY_MODEL_TO_PRESET:
-                preset = LEGACY_MODEL_TO_PRESET[model]
+            if preset := LEGACY_MODEL_TO_PRESET.get(subentry.data.get(CONF_MODEL)):
                 LOGGER.debug(
-                    "Migrating subentry %s from model %s to preset %s",
-                    subentry.subentry_id,
-                    model,
-                    preset,
+                    "Migrating subentry %s to preset %s", subentry.subentry_id, preset
                 )
                 hass.config_entries.async_update_subentry(
                     entry, subentry, data={**subentry.data, CONF_MODEL: preset}
