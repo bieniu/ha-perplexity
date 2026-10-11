@@ -24,10 +24,10 @@ TIMERS_UNSUPPORTED = "This device is not able to start timers."
 
 PERPLEXITY_MODELS = {"fast": "Fast", "low": "Low", "medium": "Medium", "high": "High"}
 
-# Perplexity's official mapping from retired Sonar models to Agent API presets
+# Mapping from Perplexity's migrate-sonar-to-agent-api skill (models-and-presets.md)
 LEGACY_MODEL_TO_PRESET = {
     "sonar": "fast",
-    "sonar-pro": "fast",
+    "sonar-pro": "low",
     "sonar-reasoning-pro": "low",
 }
 
