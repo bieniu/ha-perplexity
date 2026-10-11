@@ -14,25 +14,24 @@ CONF_REASONING_EFFORT = "reasoning_effort"
 CONF_WEB_SEARCH = "web_search"
 CONF_PROMPT = "prompt"
 
-RECOMMENDED_CHAT_MODEL = "sonar"
-DEFAULT_REASONING_EFFORT = "low"
+RECOMMENDED_CHAT_MODEL = "fast"
 DEFAULT_WEB_SEARCH = False
-
 MIN_MAX_TOKENS = 16
 
 INTEGRATION_HEADERS = {"X-Pplx-Integration": "ha-perplexity"}
 
 TIMERS_UNSUPPORTED = "This device is not able to start timers."
 
-PERPLEXITY_MODELS = {
-    "sonar": "Sonar",
-    "sonar-pro": "Sonar Pro",
-    "sonar-reasoning-pro": "Sonar Reasoning Pro",
+PERPLEXITY_MODELS = {"fast": "Fast", "low": "Low", "medium": "Medium", "high": "High"}
+
+# Perplexity's official mapping from retired Sonar models to Agent API presets
+LEGACY_MODEL_TO_PRESET = {
+    "sonar": "fast",
+    "sonar-pro": "fast",
+    "sonar-reasoning-pro": "low",
 }
 
-REASONING_MODELS = {"sonar-reasoning-pro"}
-
-REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]
+REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high", "xhigh"]
 
 WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
 

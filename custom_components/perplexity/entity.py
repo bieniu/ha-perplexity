@@ -18,16 +18,14 @@ from homeassistant.helpers.entity import Entity
 from probatio import to_openapi
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
-from perplexity.types import StreamChunk
+from perplexity.types import ResponseStreamChunk
 
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
     CONF_WEB_SEARCH,
-    DEFAULT_REASONING_EFFORT,
     DEFAULT_WEB_SEARCH,
     DOMAIN,
-    REASONING_MODELS,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
@@ -82,43 +80,54 @@ def _format_structured_output(
     return result
 
 
-def _convert_content_to_chat_message(
+def _convert_content_to_input_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
-    """Convert any native chat message for this agent to the native format."""
+    """Convert user and assistant content to an Agent API input message."""
     if TYPE_CHECKING:
         assert not isinstance(content, conversation.ToolResultContent)
 
-    if content.role == "system" and content.content:
-        return {"role": "system", "content": content.content}
-
-    if content.role == "user" and content.content:
-        return {"role": "user", "content": content.content}
-
-    if content.role == "assistant" and content.content:
-        return {"role": "assistant", "content": content.content}
+    if content.role in ("user", "assistant") and content.content:
+        return {"type": "message", "role": content.role, "content": content.content}
 
     return None
 
 
+async def _async_iter_text_deltas(
+    stream: AsyncIterable[ResponseStreamChunk], entry_title: str
+) -> AsyncGenerator[str]:
+    """Yield text deltas from the Perplexity stream."""
+    try:
+        async for chunk in stream:
+            if chunk.type == "response.output_text.delta":
+                yield chunk.delta
+            elif chunk.type == "response.failed":
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="api_error",
+                    translation_placeholders={
+                        "entry": entry_title,
+                        "error": chunk.error.message,
+                    },
+                )
+    except PerplexityError as err:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="api_error",
+            translation_placeholders={"entry": entry_title, "error": str(err)},
+        ) from err
+
+
 async def _transform_stream(
-    stream: AsyncIterable[StreamChunk],
+    stream: AsyncIterable[ResponseStreamChunk], entry_title: str
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform the Perplexity stream to delta content."""
     first = True
-    async for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta:
-            if first:
-                yield {"role": "assistant"}
-                first = False
-            delta_content = chunk.choices[0].delta.content
-            if delta_content:
-                # Content may be str or a complex type - ensure we have str
-                if isinstance(delta_content, str):
-                    yield {"content": delta_content}
-                else:
-                    # Handle potential list of content chunks
-                    yield {"content": str(delta_content)}
+    async for delta in _async_iter_text_deltas(stream, entry_title):
+        if first:
+            yield {"role": "assistant"}
+            first = False
+        yield {"content": delta}
 
 
 async def _async_prepare_files_for_prompt(
@@ -153,8 +162,8 @@ async def _async_prepare_files_for_prompt(
         base64_file = base64.b64encode(file_bytes).decode("utf-8")
         content.append(
             {
-                "type": "image_url",
-                "image_url": {"url": f"data:{mime_type};base64,{base64_file}"},
+                "type": "input_image",
+                "image_url": f"data:{mime_type};base64,{base64_file}",
             }
         )
 
@@ -185,7 +194,7 @@ class PerplexityEntity(Entity):
         structure: probatio.Schema | None = None,
         response_format: dict[str, Any] | None = None,
         stream_transform: Callable[
-            [AsyncIterable[StreamChunk]],
+            [AsyncIterable[ResponseStreamChunk]],
             AsyncGenerator[conversation.AssistantContentDeltaDict],
         ]
         | None = None,
@@ -193,28 +202,32 @@ class PerplexityEntity(Entity):
     ) -> None:
         """Generate an answer for the chat log."""
         web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
-        model_args: dict[str, Any] = {
-            "model": self.model,
-            "disable_search": not web_search,
-            "stream": True,
-        }
+        model_args: dict[str, Any] = {"preset": self.model, "stream": True}
 
-        if self.model in REASONING_MODELS:
-            model_args["reasoning_effort"] = self.subentry.data.get(
-                CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
-            )
+        # Presets ship with web search, so tools must be disabled explicitly
+        if not web_search:
+            model_args["tool_choice"] = "none"
 
-        model_args["messages"] = [
+        if CONF_REASONING_EFFORT in self.subentry.data:
+            model_args["reasoning"] = {
+                "effort": self.subentry.data[CONF_REASONING_EFFORT]
+            }
+
+        instructions = [
+            content.content
+            for content in chat_log.content
+            if isinstance(content, conversation.SystemContent) and content.content
+        ]
+        if web_search:
+            instructions.append(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
+        if instructions:
+            model_args["instructions"] = "\n".join(instructions)
+
+        model_args["input"] = [
             m
             for content in chat_log.content
-            if (m := _convert_content_to_chat_message(content))
+            if (m := _convert_content_to_input_message(content))
         ]
-
-        # Add instruction to not include citations when web search is enabled
-        if web_search and model_args["messages"]:
-            first_message = model_args["messages"][0]
-            if first_message["role"] == "system":
-                first_message["content"] += f"\n{WEB_SEARCH_ADDITIONAL_INSTRUCTION}"
 
         last_content = chat_log.content[-1]
 
@@ -223,7 +236,7 @@ class PerplexityEntity(Entity):
             isinstance(last_content, conversation.UserContent)
             and last_content.attachments
         ):
-            last_message = model_args["messages"][-1]
+            last_message = model_args["input"][-1]
 
             if TYPE_CHECKING:
                 assert last_message["role"] == "user"
@@ -234,7 +247,7 @@ class PerplexityEntity(Entity):
                 [(a.path, a.mime_type) for a in last_content.attachments],
             )
             last_message["content"] = [
-                {"type": "text", "text": last_message["content"]},
+                {"type": "input_text", "text": last_message["content"]},
                 *files,
             ]
 
@@ -249,7 +262,7 @@ class PerplexityEntity(Entity):
 
         for _iteration in range(max_iterations):
             try:
-                stream = await client.chat.completions.create(**model_args)
+                stream = await client.responses.create(**model_args)
             except AuthenticationError as err:
                 self.entry.async_start_reauth(self.hass)
                 raise HomeAssistantError(
@@ -267,14 +280,18 @@ class PerplexityEntity(Entity):
                     },
                 ) from err
 
-            transform = stream_transform or _transform_stream
-            model_args["messages"].extend(
+            deltas = (
+                stream_transform(stream)
+                if stream_transform
+                else _transform_stream(stream, self.entry.title)
+            )
+            model_args["input"].extend(
                 [
                     msg
                     async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, transform(stream)
+                        self.entity_id, deltas
                     )
-                    if (msg := _convert_content_to_chat_message(content))
+                    if (msg := _convert_content_to_input_message(content))
                 ]
             )
             if not chat_log.unresponded_tool_results:

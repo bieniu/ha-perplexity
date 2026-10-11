@@ -9,7 +9,9 @@
         "@bieniu"
     ],
     "config_flow": true,
-    "dependencies": ["conversation"],
+    "dependencies": [
+        "conversation"
+    ],
     "documentation": "https://github.com/bieniu/ha-perplexity",
     "integration_type": "service",
     "iot_class": "cloud_polling",

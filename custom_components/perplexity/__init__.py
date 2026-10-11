@@ -1,14 +1,20 @@
 """The Perplexity integration."""
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, Platform
+from homeassistant.const import CONF_API_KEY, CONF_MODEL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.httpx_client import get_async_client
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
-from .const import DOMAIN, INTEGRATION_HEADERS, MIN_MAX_TOKENS
+from .const import (
+    DOMAIN,
+    INTEGRATION_HEADERS,
+    LEGACY_MODEL_TO_PRESET,
+    LOGGER,
+    MIN_MAX_TOKENS,
+)
 
 PLATFORMS = [Platform.AI_TASK, Platform.CONVERSATION]
 
@@ -28,11 +34,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
     _ = await hass.async_add_executor_job(client.platform_headers)
 
     try:
-        await client.chat.completions.create(
-            model="sonar",
-            messages=[{"role": "user", "content": "hi"}],
-            disable_search=True,
-            max_tokens=MIN_MAX_TOKENS,
+        await client.responses.create(
+            preset="fast",
+            input="hi",
+            tool_choice="none",
+            max_output_tokens=MIN_MAX_TOKENS,
         )
     except AuthenticationError as err:
         raise ConfigEntryAuthFailed(
@@ -66,3 +72,26 @@ async def _async_update_listener(
 async def async_unload_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -> bool:
     """Unload Perplexity."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: PerplexityConfigEntry
+) -> bool:
+    """Migrate old config entries."""
+    if entry.version == 1:
+        for subentry in entry.subentries.values():
+            model = subentry.data.get(CONF_MODEL)
+            if model in LEGACY_MODEL_TO_PRESET:
+                preset = LEGACY_MODEL_TO_PRESET[model]
+                LOGGER.debug(
+                    "Migrating subentry %s from model %s to preset %s",
+                    subentry.subentry_id,
+                    model,
+                    preset,
+                )
+                hass.config_entries.async_update_subentry(
+                    entry, subentry, data={**subentry.data, CONF_MODEL: preset}
+                )
+        hass.config_entries.async_update_entry(entry, version=2)
+
+    return True

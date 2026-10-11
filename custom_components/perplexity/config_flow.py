@@ -32,7 +32,6 @@ from .const import (
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
     CONF_WEB_SEARCH,
-    DEFAULT_REASONING_EFFORT,
     DEFAULT_WEB_SEARCH,
     DOMAIN,
     INTEGRATION_HEADERS,
@@ -40,7 +39,6 @@ from .const import (
     MIN_MAX_TOKENS,
     PERPLEXITY_MODELS,
     REASONING_EFFORT_OPTIONS,
-    REASONING_MODELS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CONVERSATION_OPTIONS,
     SUBENTRY_TYPE_AI_TASK,
@@ -53,7 +51,7 @@ DESCRIPTION_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/ap
 class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Perplexity."""
 
-    VERSION = 1
+    VERSION = 2
 
     @classmethod
     @callback
@@ -76,15 +74,16 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
                 http_client=get_async_client(self.hass),
                 default_headers=INTEGRATION_HEADERS,
             )
-            await client.chat.completions.create(
-                model="sonar",
-                messages=[{"role": "user", "content": "hi"}],
-                disable_search=True,
-                max_tokens=MIN_MAX_TOKENS,
+            await client.responses.create(
+                preset="fast",
+                input="hi",
+                tool_choice="none",
+                max_output_tokens=MIN_MAX_TOKENS,
             )
         except AuthenticationError:
             errors["base"] = "invalid_auth"
-        except PerplexityError:
+        except PerplexityError as err:
+            LOGGER.error("Unable to connect to Perplexity API: %s", err)
             errors["base"] = "cannot_connect"
         except Exception:  # noqa: BLE001
             LOGGER.exception("Unexpected exception")
@@ -204,39 +203,31 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
     ) -> SubentryFlowResult:
         """Handle reconfiguration of a subentry."""
         subentry = self._get_reconfigure_subentry()
-        model = subentry.data.get(CONF_MODEL)
 
         if user_input is not None:
-            return self.async_update_and_abort(
-                self._get_entry(),
-                subentry,
-                data={**subentry.data, **user_input},
-            )
-
-        current_web_search = subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
+            data = {**subentry.data, **user_input}
+            if CONF_REASONING_EFFORT not in user_input:
+                data.pop(CONF_REASONING_EFFORT, None)
+            return self.async_update_and_abort(self._get_entry(), subentry, data=data)
 
         schema: dict[probatio.Marker, Any] = {
-            probatio.Required(CONF_WEB_SEARCH, default=current_web_search): bool,
+            probatio.Required(
+                CONF_WEB_SEARCH,
+                default=subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH),
+            ): bool,
+            probatio.Optional(
+                CONF_REASONING_EFFORT,
+                description={
+                    "suggested_value": subentry.data.get(CONF_REASONING_EFFORT)
+                },
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=REASONING_EFFORT_OPTIONS,
+                    translation_key=CONF_REASONING_EFFORT,
+                    mode=SelectSelectorMode.DROPDOWN,
+                ),
+            ),
         }
-
-        # Add reasoning effort option only for reasoning models
-        if model in REASONING_MODELS:
-            current_reasoning_effort = subentry.data.get(
-                CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
-            )
-            schema.update(
-                {
-                    probatio.Required(
-                        CONF_REASONING_EFFORT, default=current_reasoning_effort
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=REASONING_EFFORT_OPTIONS,
-                            translation_key=CONF_REASONING_EFFORT,
-                            mode=SelectSelectorMode.DROPDOWN,
-                        ),
-                    )
-                }
-            )
 
         return self.async_show_form(
             step_id="reconfigure",
@@ -279,8 +270,6 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
             return self.async_abort(reason="entry_not_loaded")
 
         if user_input is not None:
-            if user_input.get(CONF_LLM_HASS_API) is None:
-                user_input.pop(CONF_LLM_HASS_API, None)
             if self._is_new:
                 return self.async_create_entry(
                     title=PERPLEXITY_MODELS[user_input[CONF_MODEL]], data=user_input
@@ -347,23 +336,19 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                     RECOMMENDED_CONVERSATION_OPTIONS[CONF_INCLUDE_HOME_LOCATION],
                 ),
             ): bool,
-        }
-
-        if model in REASONING_MODELS:
-            schema[
-                probatio.Required(
-                    CONF_REASONING_EFFORT,
-                    default=self.options.get(
-                        CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
-                    ),
-                )
-            ] = SelectSelector(
+            probatio.Optional(
+                CONF_REASONING_EFFORT,
+                description={
+                    "suggested_value": self.options.get(CONF_REASONING_EFFORT)
+                },
+            ): SelectSelector(
                 SelectSelectorConfig(
                     options=REASONING_EFFORT_OPTIONS,
                     translation_key=CONF_REASONING_EFFORT,
                     mode=SelectSelectorMode.DROPDOWN,
                 ),
-            )
+            ),
+        }
 
         return self.async_show_form(
             step_id="init",

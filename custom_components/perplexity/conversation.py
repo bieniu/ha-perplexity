@@ -22,7 +22,7 @@ from homeassistant.helpers.json import json_dumps
 from homeassistant.util import yaml as yaml_util
 from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads_object
 
-from perplexity.types import StreamChunk
+from perplexity.types import ResponseStreamChunk
 
 from . import PerplexityConfigEntry
 from .const import (
@@ -35,7 +35,7 @@ from .const import (
     SUBENTRY_TYPE_CONVERSATION,
     TIMERS_UNSUPPORTED,
 )
-from .entity import PerplexityEntity
+from .entity import PerplexityEntity, _async_iter_text_deltas
 
 
 @dataclass
@@ -364,19 +364,15 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         parsed_results: list[ParsedResponse] = []
 
         async def _buffer_and_parse(
-            stream: AsyncIterable[StreamChunk],
+            stream: AsyncIterable[ResponseStreamChunk],
         ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
             """Buffer the full stream, parse JSON, yield only text content."""
-            full_content = ""
-            async for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta:
-                    delta_content = chunk.choices[0].delta.content
-                    if delta_content:
-                        full_content += (
-                            delta_content
-                            if isinstance(delta_content, str)
-                            else str(delta_content)
-                        )
+            full_content = "".join(
+                [
+                    delta
+                    async for delta in _async_iter_text_deltas(stream, self.entry.title)
+                ]
+            )
             parsed = _parse_json_response(full_content)
             parsed_results.append(parsed)
             yield {"role": "assistant"}
