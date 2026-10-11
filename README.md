@@ -36,7 +36,7 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 
   [![Open your Home Assistant instance and show your voice assistants.](https://my.home-assistant.io/badges/voice_assistants.svg)](https://my.home-assistant.io/redirect/voice_assistants/)
 - Select **Add assistant**.
-- Enter the assistant's name and select one of the Perplexity models as the **Conversation agent**.
+- Enter the assistant's name and select one of the Perplexity presets as the **Conversation agent**.
 - Now you can customize your conversation agent settings.
 
   <img width="606" height="554" alt="obraz" src="https://github.com/user-attachments/assets/94dc1193-9f60-49ed-b6a6-eb376405b3bf" />
@@ -51,11 +51,15 @@ Perplexity integration supports:
 
 - [Conversation](https://www.home-assistant.io/integrations/conversation/) platform (beta)
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
-- **Sonar**, **Sonar Pro** and **Sonar Reasoning Pro** models
-- **reasoning effort** configuration (for models supporting reasoning)
+- **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API)
+- optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
 - controlling **web search** option
 - delayed actions - you can ask the assistant to perform an action (for example, turn on the light) after some time or at a specific time
 - timers
+
+## Migration from Sonar models
+
+Perplexity retired the Sonar models, so the integration now uses the Perplexity Agent API and you choose a preset instead of a model. Existing entries are migrated automatically: `sonar` and `sonar-pro` become **Fast**, and `sonar-reasoning-pro` becomes **Low**. If you see "Failed to connect" with a valid API key, upgrade the integration to the latest version.
 
 ## AI Task examples
 
@@ -65,7 +69,7 @@ Perplexity integration supports:
 action: ai_task.generate_data
 data:
   task_name: Weather Description
-  entity_id: ai_task.sonar
+  entity_id: ai_task.fast
   instructions: >-
     Based on this {{ states.weather.home }} and an image create short weather
     description (ONLY ONE SENTENCE).
@@ -83,7 +87,7 @@ The sky is overcast with dark, ragged clouds on this chilly January morning, thr
 action: ai_task.generate_data
 data:
   task_name: Number of cars
-  entity_id: ai_task.sonar
+  entity_id: ai_task.fast
   instructions: In the attached photo, count the cars in the parking lot.
   attachments:
     media_content_id: media-source://camera/camera.parking
