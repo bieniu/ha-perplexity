@@ -48,8 +48,9 @@ Perplexity integration supports:
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
 - **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
-- delayed actions - you can ask the assistant to perform an action (for example, turn on the light) after some time or at a specific time
-- timers
+- control of entities exposed to Assist through Home Assistant's LLM tools (the **Assist** API), the same way the built-in AI integrations work
+- live entity state through the `GetLiveContext` tool, so the assistant can answer questions about your home
+- timers and delayed commands (for example, turn off the light in 10 minutes) on voice devices that support timers; Home Assistant's default agent runs the delayed command when the timer ends
 
 ## AI Task examples
 
