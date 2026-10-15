@@ -116,6 +116,9 @@
         "no_assistant_response": {
             "message": "Ostatnia tre\u015b\u0107 w dzienniku czatu nie jest tre\u015bci\u0105 AssistantContent"
         },
+        "response_incomplete": {
+            "message": "Odpowied\u017a z {entry} zosta\u0142a przerwana ({reason}), spr\u00f3buj ponownie lub upro\u015b\u0107 swoje zapytanie"
+        },
         "structured_response_error": {
             "message": "B\u0142\u0105d w ustrukturyzowanej odpowiedzi Perplexity: {error}"
         },

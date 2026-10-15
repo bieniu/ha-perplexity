@@ -1,8 +1,10 @@
 """Tests for the Perplexity entity module."""
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Sequence
 from pathlib import Path
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import probatio
 import pytest
@@ -179,10 +181,12 @@ def test_convert_content_to_input_message(
 
 def _chunk(chunk_type: str, delta: str | None = None) -> MagicMock:
     """Return a mock stream chunk."""
-    return MagicMock(type=chunk_type, delta=delta)
+    return MagicMock(
+        type=chunk_type, delta=delta, response=MagicMock(status="completed")
+    )
 
 
-async def _as_stream(chunks: list[MagicMock]) -> AsyncGenerator[MagicMock]:
+async def _as_stream(chunks: Sequence[Any]) -> AsyncGenerator[Any]:
     """Yield the given chunks as an async stream."""
     for chunk in chunks:
         yield chunk
@@ -342,3 +346,86 @@ async def test_ai_task_authentication_error(
     assert "context" in flow
     assert flow["context"].get("source") == SOURCE_REAUTH
     assert flow["context"].get("entry_id") == mock_setup_entry.entry_id
+
+
+@pytest.mark.parametrize(
+    ("chunk", "translation_key", "placeholders"),
+    [
+        (
+            SimpleNamespace(type="response.cancelled", error={"message": "Stopped"}),
+            "api_error",
+            {"entry": "Perplexity", "error": "Stopped"},
+        ),
+        (
+            SimpleNamespace(type="response.cancelled"),
+            "api_error",
+            {"entry": "Perplexity", "error": "response.cancelled"},
+        ),
+        (
+            SimpleNamespace(type="error", error={"message": "Upstream timeout"}),
+            "api_error",
+            {"entry": "Perplexity", "error": "Upstream timeout"},
+        ),
+        (
+            SimpleNamespace(
+                type="response.incomplete",
+                response=SimpleNamespace(
+                    incomplete_details={"reason": "max_output_tokens"}
+                ),
+            ),
+            "response_incomplete",
+            {"entry": "Perplexity", "reason": "max_output_tokens"},
+        ),
+        (
+            SimpleNamespace(
+                type="response.completed",
+                response=SimpleNamespace(
+                    status="incomplete",
+                    incomplete_details={"reason": "max_output_tokens"},
+                ),
+            ),
+            "response_incomplete",
+            {"entry": "Perplexity", "reason": "max_output_tokens"},
+        ),
+        (
+            SimpleNamespace(
+                type="response.completed",
+                response=SimpleNamespace(
+                    status="failed", error=SimpleNamespace(message="Model error")
+                ),
+            ),
+            "api_error",
+            {"entry": "Perplexity", "error": "Model error"},
+        ),
+        (
+            SimpleNamespace(
+                type="response.completed",
+                response=SimpleNamespace(status="cancelled", error=None),
+            ),
+            "api_error",
+            {"entry": "Perplexity", "error": "response cancelled"},
+        ),
+    ],
+)
+async def test_ai_task_stream_terminal_error(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    chunk: SimpleNamespace,
+    translation_key: str,
+    placeholders: dict[str, str],
+) -> None:
+    """Test AI task raises on every non-successful stream terminal."""
+    stream = _as_stream([_chunk("response.output_text.delta", delta="partial"), chunk])
+    mock_perplexity_client.responses.create = AsyncMock(return_value=stream)
+
+    with pytest.raises(HomeAssistantError) as exc_info:
+        await ai_task.async_generate_data(
+            hass,
+            task_name="Test task",
+            entity_id="ai_task.fast",
+            instructions="Test instructions",
+        )
+
+    assert exc_info.value.translation_key == translation_key
+    assert exc_info.value.translation_placeholders == placeholders

@@ -117,11 +117,17 @@ async def test_ai_task_generate_data_without_structure_strips_reasoning(
     assert result.data == "Visible answer"
 
 
+@pytest.mark.parametrize(
+    ("task_name", "expected_name"),
+    [("Test task", "Test_task"), ("a" * 70, "a" * 64), ("żółw", "___w")],
+)
 async def test_ai_task_generate_data_with_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
     mock_stream: Callable[[str], Any],
+    task_name: str,
+    expected_name: str,
 ) -> None:
     """Test AI task generate data with structure."""
     mock_perplexity_client.responses.create = AsyncMock(
@@ -130,7 +136,7 @@ async def test_ai_task_generate_data_with_structure(
 
     result = await ai_task.async_generate_data(
         hass,
-        task_name="Test task",
+        task_name=task_name,
         entity_id="ai_task.fast",
         instructions="Test instructions",
         structure=probatio.Schema({probatio.Required("key"): str}),
@@ -141,7 +147,7 @@ async def test_ai_task_generate_data_with_structure(
         "response_format"
     ]
     assert response_format["type"] == "json_schema"
-    assert response_format["json_schema"]["name"] == "Test task"
+    assert response_format["json_schema"]["name"] == expected_name
 
 
 async def test_ai_task_generate_data_with_structure_strips_reasoning(
@@ -319,7 +325,9 @@ async def test_ai_task_no_assistant_response(
 
     async def _empty_stream() -> AsyncGenerator[MagicMock]:
         yield MagicMock(type="response.created")
-        yield MagicMock(type="response.completed")
+        yield MagicMock(
+            type="response.completed", response=MagicMock(status="completed")
+        )
 
     mock_perplexity_client.responses.create = AsyncMock(return_value=_empty_stream())
 

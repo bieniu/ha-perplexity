@@ -59,7 +59,7 @@ Perplexity integration supports:
 
 ## Migration from Sonar models
 
-Perplexity retired the Sonar models, so the integration now uses the Perplexity Agent API and you choose a preset instead of a model. Existing entries are migrated automatically: `sonar` becomes **Fast**, and `sonar-pro` and `sonar-reasoning-pro` become **Low**. If you see "Failed to connect" with a valid API key, upgrade the integration to the latest version.
+Perplexity retired the Sonar models, so the integration now uses the Perplexity Agent API and you choose a preset instead of a model. Existing entries are migrated automatically: `sonar` and `sonar-pro` become **Fast**, and `sonar-reasoning-pro` becomes **Low**. If you see "Failed to connect" with a valid API key, upgrade the integration to the latest version.
 
 ## AI Task examples
 

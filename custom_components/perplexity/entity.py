@@ -1,6 +1,7 @@
 """Base entity for Perplexity."""
 
 import base64
+import re
 from collections.abc import AsyncGenerator, AsyncIterable, Callable
 from functools import partial
 from mimetypes import guess_file_type
@@ -67,6 +68,8 @@ def _format_structured_output(
     name: str, schema: probatio.Schema, llm_api: llm.APIInstance | None
 ) -> dict[str, str | dict[str, Any]]:
     """Format the schema to be compatible with Perplexity API."""
+    # The API expects a 1-64 character name made of [A-Za-z0-9_-]
+    name = re.sub(r"[^A-Za-z0-9_-]", "_", name)[:64] or "response"
     result: dict[str, str | dict[str, Any]] = {
         "type": "json_schema",
         "json_schema": {
@@ -100,6 +103,25 @@ def _convert_content_to_input_message(
     return None
 
 
+def _field(obj: object, key: str) -> Any:  # noqa: ANN401
+    """Return a field from a typed SDK model or a raw dict."""
+    # Fields the SDK models do not declare are kept as raw dicts
+    return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+
+def _incomplete_error(entry_title: str, response: object) -> HomeAssistantError:
+    """Return the error for a response truncated before completion."""
+    details = _field(response, "incomplete_details")
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="response_incomplete",
+        translation_placeholders={
+            "entry": entry_title,
+            "reason": _field(details, "reason") or "unknown",
+        },
+    )
+
+
 async def _async_iter_text_deltas(
     stream: AsyncIterable[ResponseStreamChunk], entry_title: str
 ) -> AsyncGenerator[str]:
@@ -110,6 +132,22 @@ async def _async_iter_text_deltas(
                 yield chunk.delta
             elif chunk.type == "response.failed":
                 raise _api_error(entry_title, chunk.error.message)
+            elif chunk.type == "response.completed":
+                # Failed and cancelled runs can still end with this event
+                status = _field(chunk.response, "status")
+                if status == "incomplete":
+                    raise _incomplete_error(entry_title, chunk.response)
+                if status not in (None, "completed"):
+                    error = _field(_field(chunk.response, "error"), "message")
+                    raise _api_error(entry_title, error or f"response {status}")
+            else:
+                # The SDK union lacks these terminals, so they arrive loosely typed
+                event_type: str = chunk.type
+                if event_type == "response.incomplete":
+                    raise _incomplete_error(entry_title, _field(chunk, "response"))
+                if event_type in ("response.cancelled", "error"):
+                    error = _field(_field(chunk, "error"), "message")
+                    raise _api_error(entry_title, error or event_type)
     except PerplexityError as err:
         raise _api_error(entry_title, str(err)) from err
 

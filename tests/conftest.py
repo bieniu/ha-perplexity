@@ -109,7 +109,7 @@ async def create_mock_stream(content: str) -> AsyncGenerator[MagicMock]:
     """Create a mock Agent API stream yielding the given text."""
     yield MagicMock(type="response.created")
     yield MagicMock(type="response.output_text.delta", delta=content)
-    yield MagicMock(type="response.completed")
+    yield MagicMock(type="response.completed", response=MagicMock(status="completed"))
 
 
 @pytest.fixture

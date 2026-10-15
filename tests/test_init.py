@@ -159,7 +159,7 @@ async def test_migrate_entry_from_v1(
         for subentry_id, subentry in entry.subentries.items()
     } == {
         "ulid-sonar": {CONF_MODEL: "fast"},
-        "ulid-sonar-pro": {CONF_MODEL: "low", CONF_REASONING_EFFORT: "high"},
+        "ulid-sonar-pro": {CONF_MODEL: "fast", CONF_REASONING_EFFORT: "high"},
         "ulid-sonar-reasoning-pro": {
             CONF_MODEL: "low",
             CONF_REASONING_EFFORT: "high",

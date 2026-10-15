@@ -27,7 +27,7 @@ PERPLEXITY_MODELS = {"fast": "Fast", "low": "Low", "medium": "Medium", "high": "
 # Mapping from Perplexity's migrate-sonar-to-agent-api skill (models-and-presets.md)
 LEGACY_MODEL_TO_PRESET = {
     "sonar": "fast",
-    "sonar-pro": "low",
+    "sonar-pro": "fast",
     "sonar-reasoning-pro": "low",
 }
 
