@@ -37,7 +37,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
         await client.responses.create(
             preset="fast",
             input="hi",
-            tool_choice="none",
             max_output_tokens=MIN_MAX_TOKENS,
         )
     except AuthenticationError as err:
@@ -80,13 +79,15 @@ async def async_migrate_entry(
     """Migrate old config entries."""
     if entry.version == 1:
         for subentry in entry.subentries.values():
-            if preset := LEGACY_MODEL_TO_PRESET.get(subentry.data.get(CONF_MODEL)):
+            data = dict(subentry.data)
+            # The option was removed because presets always search the web
+            data.pop("web_search", None)
+            if preset := LEGACY_MODEL_TO_PRESET.get(data.get(CONF_MODEL)):
                 LOGGER.debug(
                     "Migrating subentry %s to preset %s", subentry.subentry_id, preset
                 )
-                hass.config_entries.async_update_subentry(
-                    entry, subentry, data={**subentry.data, CONF_MODEL: preset}
-                )
+                data[CONF_MODEL] = preset
+            hass.config_entries.async_update_subentry(entry, subentry, data=data)
         hass.config_entries.async_update_entry(entry, version=2)
 
     return True

@@ -25,8 +25,6 @@ from perplexity.types import ResponseStreamChunk
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
-    CONF_WEB_SEARCH,
-    DEFAULT_WEB_SEARCH,
     DOMAIN,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
@@ -234,12 +232,7 @@ class PerplexityEntity(Entity):
         | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
-        web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
         model_args: dict[str, Any] = {"preset": self.model, "stream": True}
-
-        # Presets ship with web search, so tools must be disabled explicitly
-        if not web_search:
-            model_args["tool_choice"] = "none"
 
         if CONF_REASONING_EFFORT in self.subentry.data:
             model_args["reasoning"] = {
@@ -251,10 +244,9 @@ class PerplexityEntity(Entity):
             for content in chat_log.content
             if isinstance(content, conversation.SystemContent) and content.content
         ]
-        if web_search:
-            instructions.append(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
-        if instructions:
-            model_args["instructions"] = "\n".join(instructions)
+        # Presets always search the web and the API offers no way to turn it off
+        instructions.append(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
+        model_args["instructions"] = "\n".join(instructions)
 
         model_args["input"] = [
             m

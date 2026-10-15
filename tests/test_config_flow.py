@@ -17,7 +17,6 @@ from custom_components.perplexity.config_flow import (
 )
 from custom_components.perplexity.const import (
     CONF_REASONING_EFFORT,
-    CONF_WEB_SEARCH,
     DOMAIN,
     MIN_MAX_TOKENS,
     SUBENTRY_TYPE_AI_TASK,
@@ -54,7 +53,6 @@ async def test_user_flow_success(
     mock_perplexity_client.responses.create.assert_awaited_with(
         preset="fast",
         input="hi",
-        tool_choice="none",
         max_output_tokens=MIN_MAX_TOKENS,
     )
 
@@ -387,20 +385,16 @@ async def test_ai_task_subentry_flow(
 @pytest.mark.parametrize(
     ("initial_data", "user_input", "expected_data"),
     [
-        (
-            {CONF_MODEL: "fast"},
-            {CONF_WEB_SEARCH: True},
-            {CONF_MODEL: "fast", CONF_WEB_SEARCH: True},
-        ),
+        ({CONF_MODEL: "fast"}, {}, {CONF_MODEL: "fast"}),
         (
             {CONF_MODEL: "low"},
-            {CONF_WEB_SEARCH: True, CONF_REASONING_EFFORT: "xhigh"},
-            {CONF_MODEL: "low", CONF_WEB_SEARCH: True, CONF_REASONING_EFFORT: "xhigh"},
+            {CONF_REASONING_EFFORT: "xhigh"},
+            {CONF_MODEL: "low", CONF_REASONING_EFFORT: "xhigh"},
         ),
         (
             {CONF_MODEL: "high", CONF_REASONING_EFFORT: "high"},
-            {CONF_WEB_SEARCH: False},
-            {CONF_MODEL: "high", CONF_WEB_SEARCH: False},
+            {},
+            {CONF_MODEL: "high"},
         ),
     ],
 )
@@ -599,30 +593,6 @@ async def test_conversation_subentry_flow_entry_not_loaded(
     assert result["reason"] == "entry_not_loaded"
 
 
-async def test_conversation_subentry_flow_with_web_search(
-    hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
-) -> None:
-    """Test conversation subentry flow with web search enabled."""
-    result = await hass.config_entries.subentries.async_init(
-        (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
-        context={"source": SOURCE_USER},
-    )
-    assert result["type"] is FlowResultType.FORM
-
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        user_input={
-            CONF_MODEL: "fast",
-            CONF_LLM_HASS_API: [],
-            CONF_WEB_SEARCH: True,
-        },
-    )
-
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_WEB_SEARCH] is True
-
-
 async def test_conversation_subentry_flow_reasoning_model(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
@@ -642,7 +612,6 @@ async def test_conversation_subentry_flow_reasoning_model(
         user_input={
             CONF_MODEL: "high",
             CONF_LLM_HASS_API: [],
-            CONF_WEB_SEARCH: True,
             CONF_REASONING_EFFORT: "xhigh",
         },
     )
@@ -650,15 +619,14 @@ async def test_conversation_subentry_flow_reasoning_model(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "High"
     assert result["data"][CONF_MODEL] == "high"
-    assert result["data"][CONF_WEB_SEARCH] is True
     assert result["data"][CONF_REASONING_EFFORT] == "xhigh"
 
 
-async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
+async def test_conversation_subentry_reconfigure_reasoning(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
 ) -> None:
-    """Test conversation subentry reconfigure with web search and reasoning."""
+    """Test conversation subentry reconfigure sets reasoning effort."""
     result = await hass.config_entries.subentries.async_init(
         (mock_setup_entry.entry_id, SUBENTRY_TYPE_CONVERSATION),
         context={"source": SOURCE_USER},
@@ -668,7 +636,6 @@ async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
         user_input={
             CONF_MODEL: "low",
             CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
-            CONF_WEB_SEARCH: False,
         },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -696,7 +663,6 @@ async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
         user_input={
             CONF_MODEL: "low",
             CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
-            CONF_WEB_SEARCH: True,
             CONF_REASONING_EFFORT: "high",
         },
     )
@@ -705,5 +671,4 @@ async def test_conversation_subentry_reconfigure_web_search_and_reasoning(
     assert result["reason"] == "reconfigure_successful"
 
     subentry = mock_setup_entry.subentries[conversation_subentry_id]
-    assert subentry.data[CONF_WEB_SEARCH] is True
     assert subentry.data[CONF_REASONING_EFFORT] == "high"

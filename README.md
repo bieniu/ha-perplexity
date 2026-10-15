@@ -53,13 +53,12 @@ Perplexity integration supports:
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
 - **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
-- controlling **web search** option
 - delayed actions - you can ask the assistant to perform an action (for example, turn on the light) after some time or at a specific time
 - timers
 
 ## Migration from Sonar models
 
-Perplexity retired the Sonar models, so the integration now uses the Perplexity Agent API and you choose a preset instead of a model. Existing entries are migrated automatically: `sonar` and `sonar-pro` become **Fast**, and `sonar-reasoning-pro` becomes **Low**. If you see "Failed to connect" with a valid API key, upgrade the integration to the latest version.
+Perplexity retired the Sonar models, so the integration now uses the Perplexity Agent API and you choose a preset instead of a model. Existing entries are migrated automatically: `sonar` and `sonar-pro` become **Fast**, and `sonar-reasoning-pro` becomes **Low**. Presets always search the web, so the web search option is gone. If you see "Failed to connect" with a valid API key, upgrade the integration to the latest version.
 
 ## AI Task examples
 

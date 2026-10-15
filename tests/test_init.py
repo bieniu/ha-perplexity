@@ -38,7 +38,6 @@ async def test_async_setup_entry_success(
     mock_perplexity_client.responses.create.assert_awaited_once_with(
         preset="fast",
         input="hi",
-        tool_choice="none",
         max_output_tokens=MIN_MAX_TOKENS,
     )
 
@@ -114,18 +113,28 @@ async def test_migrate_entry_from_v1(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
 ) -> None:
-    """Test legacy Sonar models are migrated to Agent API presets."""
+    """Test v1 subentries get presets and lose the web search option."""
     legacy = {
-        "ulid-sonar": (SUBENTRY_TYPE_AI_TASK, {CONF_MODEL: "sonar"}),
+        "ulid-sonar": (
+            SUBENTRY_TYPE_AI_TASK,
+            {CONF_MODEL: "sonar", "web_search": True},
+        ),
         "ulid-sonar-pro": (
             SUBENTRY_TYPE_CONVERSATION,
-            {CONF_MODEL: "sonar-pro", CONF_REASONING_EFFORT: "high"},
+            {
+                CONF_MODEL: "sonar-pro",
+                CONF_REASONING_EFFORT: "high",
+                "web_search": False,
+            },
         ),
         "ulid-sonar-reasoning-pro": (
             SUBENTRY_TYPE_AI_TASK,
             {CONF_MODEL: "sonar-reasoning-pro", CONF_REASONING_EFFORT: "high"},
         ),
-        "ulid-unknown": (SUBENTRY_TYPE_AI_TASK, {CONF_MODEL: "unknown-model"}),
+        "ulid-unknown": (
+            SUBENTRY_TYPE_AI_TASK,
+            {CONF_MODEL: "unknown-model", "web_search": True},
+        ),
     }
     entry = MockConfigEntry(
         domain=DOMAIN,

@@ -21,7 +21,6 @@ from custom_components.perplexity.const import (
     ACTION_RESPONSE_SCHEMA,
     CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
-    CONF_WEB_SEARCH,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
@@ -162,7 +161,7 @@ async def test_conversation_with_actions(
     assert len(sent_kwargs) == 1
     call_args = sent_kwargs[0]
     assert call_args["preset"] == "fast"
-    assert call_args["tool_choice"] == "none"
+    assert "tool_choice" not in call_args
     assert call_args["stream"] is True
     assert call_args["response_format"] == ACTION_RESPONSE_SCHEMA
 
@@ -222,12 +221,12 @@ async def test_conversation_with_actions_and_data(
     assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
 
 
-async def test_conversation_web_search_enabled(
+async def test_conversation_appends_citation_instruction(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_stream: Callable[[str], Any],
 ) -> None:
-    """Test conversation with web search enabled."""
+    """Test conversation always asks presets to omit web search citations."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
@@ -237,7 +236,6 @@ async def test_conversation_web_search_enabled(
             {
                 "data": {
                     CONF_MODEL: "fast",
-                    CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                 },
                 "subentry_type": SUBENTRY_TYPE_CONVERSATION,
@@ -532,7 +530,6 @@ async def test_conversation_with_home_location(
             {
                 "data": {
                     CONF_MODEL: "fast",
-                    CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                     CONF_INCLUDE_HOME_LOCATION: True,
                 },
@@ -592,7 +589,6 @@ async def test_conversation_with_home_location_no_country(
             {
                 "data": {
                     CONF_MODEL: "fast",
-                    CONF_WEB_SEARCH: True,
                     CONF_PROMPT: "You are helpful.",
                     CONF_INCLUDE_HOME_LOCATION: True,
                 },

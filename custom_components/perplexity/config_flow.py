@@ -31,8 +31,6 @@ from .const import (
     CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
     CONF_REASONING_EFFORT,
-    CONF_WEB_SEARCH,
-    DEFAULT_WEB_SEARCH,
     DOMAIN,
     INTEGRATION_HEADERS,
     LOGGER,
@@ -77,7 +75,6 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
             await client.responses.create(
                 preset="fast",
                 input="hi",
-                tool_choice="none",
                 max_output_tokens=MIN_MAX_TOKENS,
             )
         except AuthenticationError:
@@ -212,10 +209,6 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
             )
 
         schema: dict[probatio.Marker, Any] = {
-            probatio.Required(
-                CONF_WEB_SEARCH,
-                default=subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH),
-            ): bool,
             probatio.Optional(
                 CONF_REASONING_EFFORT,
                 description={
@@ -323,13 +316,6 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                 CONF_LLM_HASS_API,
                 default=self.options.get(CONF_LLM_HASS_API, []),
             ): SelectSelector(SelectSelectorConfig(options=hass_apis, multiple=True)),
-            probatio.Required(
-                CONF_WEB_SEARCH,
-                default=self.options.get(
-                    CONF_WEB_SEARCH,
-                    RECOMMENDED_CONVERSATION_OPTIONS[CONF_WEB_SEARCH],
-                ),
-            ): bool,
             probatio.Required(
                 CONF_INCLUDE_HOME_LOCATION,
                 default=self.options.get(

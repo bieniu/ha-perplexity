@@ -18,7 +18,6 @@ from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import (
     CONF_REASONING_EFFORT,
-    CONF_WEB_SEARCH,
     DOMAIN,
     SUBENTRY_TYPE_AI_TASK,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
@@ -196,17 +195,11 @@ async def test_ai_task_generate_data_invalid_json(
 
 
 @pytest.mark.parametrize(
-    ("subentry_data", "expected_tool_choice", "expected_reasoning", "citations"),
+    ("subentry_data", "expected_reasoning"),
     [
-        ({}, "none", None, False),
-        ({CONF_WEB_SEARCH: True}, None, None, True),
-        ({CONF_REASONING_EFFORT: "high"}, "none", {"effort": "high"}, False),
-        (
-            {CONF_WEB_SEARCH: True, CONF_REASONING_EFFORT: "xhigh"},
-            None,
-            {"effort": "xhigh"},
-            True,
-        ),
+        ({}, None),
+        ({CONF_REASONING_EFFORT: "high"}, {"effort": "high"}),
+        ({CONF_REASONING_EFFORT: "xhigh"}, {"effort": "xhigh"}),
     ],
 )
 async def test_ai_task_request_args(
@@ -214,11 +207,9 @@ async def test_ai_task_request_args(
     mock_perplexity_client: MagicMock,
     mock_stream: Callable[[str], Any],
     subentry_data: dict[str, Any],
-    expected_tool_choice: str | None,
     expected_reasoning: dict[str, str] | None,
-    citations: bool,
 ) -> None:
-    """Test the Agent API arguments depend on web search and reasoning options."""
+    """Test the Agent API arguments for the reasoning options."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
@@ -259,11 +250,9 @@ async def test_ai_task_request_args(
     call_kwargs = mock_perplexity_client.responses.create.call_args.kwargs
     assert call_kwargs["preset"] == "medium"
     assert call_kwargs["stream"] is True
-    assert call_kwargs.get("tool_choice") == expected_tool_choice
+    assert "tool_choice" not in call_kwargs
     assert call_kwargs.get("reasoning") == expected_reasoning
-    assert (
-        WEB_SEARCH_ADDITIONAL_INSTRUCTION in call_kwargs["instructions"]
-    ) is citations
+    assert call_kwargs["instructions"].endswith(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
     assert call_kwargs["input"][0] == {
         "type": "message",
         "role": "user",
