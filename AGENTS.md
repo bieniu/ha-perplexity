@@ -29,9 +29,9 @@ CI runs in order: lint → format check (`--check`) → types → prek → test.
 
 - Integration type `service` with **subentries**: one per AI Task / Conversation agent
 - `__init__.py` creates `AsyncPerplexity` client, stores in `entry.runtime_data`, typed as `PerplexityConfigEntry`
-- `const.py` is the single source of truth for supported models, option keys, defaults
-- `entity.py` handles all Perplexity API calls (streaming, structured output, file attachments, auth/API errors)
-- IMPORTANT: Perplexity API does not support tool calling
+- `const.py` is the single source of truth for presets (`fast`, `low`, `medium`, `high`), option keys, defaults, and the legacy Sonar model → preset migration map
+- `entity.py` handles all Perplexity API calls via the Agent API `client.responses.create` (preset, `instructions` + `input`, streaming events such as `response.output_text.delta`, structured output, file attachments, auth/API errors)
+- IMPORTANT: the integration deliberately does not use Agent API function tools; HA control relies on structured JSON output instead
 - **Two dependency sources**: `pyproject.toml` for uv, `manifest.json` for HA runtime. `sync-manifest.yml` workflow keeps `perplexityai` version in sync when dependabot updates `pyproject.toml`.
 
 ## Testing

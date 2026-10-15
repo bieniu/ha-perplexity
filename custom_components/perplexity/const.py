@@ -11,28 +11,25 @@ LOGGER = logging.getLogger(__package__)
 
 CONF_INCLUDE_HOME_LOCATION = "include_home_location"
 CONF_REASONING_EFFORT = "reasoning_effort"
-CONF_WEB_SEARCH = "web_search"
 CONF_PROMPT = "prompt"
 
-RECOMMENDED_CHAT_MODEL = "sonar"
-DEFAULT_REASONING_EFFORT = "low"
-DEFAULT_WEB_SEARCH = False
-
+RECOMMENDED_CHAT_MODEL = "fast"
 MIN_MAX_TOKENS = 16
 
 INTEGRATION_HEADERS = {"X-Pplx-Integration": "ha-perplexity"}
 
 TIMERS_UNSUPPORTED = "This device is not able to start timers."
 
-PERPLEXITY_MODELS = {
-    "sonar": "Sonar",
-    "sonar-pro": "Sonar Pro",
-    "sonar-reasoning-pro": "Sonar Reasoning Pro",
+PERPLEXITY_MODELS = {"fast": "Fast", "low": "Low", "medium": "Medium", "high": "High"}
+
+# Mapping from Perplexity's migrate-sonar-to-agent-api skill (models-and-presets.md)
+LEGACY_MODEL_TO_PRESET = {
+    "sonar": "fast",
+    "sonar-pro": "fast",
+    "sonar-reasoning-pro": "low",
 }
 
-REASONING_MODELS = {"sonar-reasoning-pro"}
-
-REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high"]
+REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high", "xhigh"]
 
 WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
 
@@ -42,7 +39,6 @@ SUBENTRY_TYPE_CONVERSATION = "conversation"
 RECOMMENDED_CONVERSATION_OPTIONS = {
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],
     CONF_PROMPT: llm.DEFAULT_INSTRUCTIONS_PROMPT,
-    CONF_WEB_SEARCH: DEFAULT_WEB_SEARCH,
     CONF_INCLUDE_HOME_LOCATION: False,
 }
 

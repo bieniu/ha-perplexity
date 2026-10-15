@@ -1,23 +1,26 @@
 """Tests for the Perplexity AI Task entity."""
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import probatio
 import pytest
-from homeassistant.components import ai_task
+from homeassistant.components import ai_task, media_source
 from homeassistant.const import CONF_MODEL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from perplexity import PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import (
-    CONF_WEB_SEARCH,
+    CONF_REASONING_EFFORT,
     DOMAIN,
     SUBENTRY_TYPE_AI_TASK,
+    WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
 
@@ -78,14 +81,14 @@ async def test_ai_task_generate_data_without_structure(
     mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data without structure."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("Test response")
     )
 
     result = await ai_task.async_generate_data(
         hass,
         task_name="Test task",
-        entity_id="ai_task.sonar",
+        entity_id="ai_task.fast",
         instructions="Test instructions",
     )
 
@@ -99,40 +102,51 @@ async def test_ai_task_generate_data_without_structure_strips_reasoning(
     mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task strips reasoning blocks from plain text responses."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("<think>\nReasoning here\n</think>\n\nVisible answer")
     )
 
     result = await ai_task.async_generate_data(
         hass,
         task_name="Test task",
-        entity_id="ai_task.sonar",
+        entity_id="ai_task.fast",
         instructions="Test instructions",
     )
 
     assert result.data == "Visible answer"
 
 
+@pytest.mark.parametrize(
+    ("task_name", "expected_name"),
+    [("Test task", "Test_task"), ("a" * 70, "a" * 64), ("żółw", "___w")],
+)
 async def test_ai_task_generate_data_with_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
     mock_stream: Callable[[str], Any],
+    task_name: str,
+    expected_name: str,
 ) -> None:
     """Test AI task generate data with structure."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream('{"key": "value"}')
     )
 
     result = await ai_task.async_generate_data(
         hass,
-        task_name="Test task",
-        entity_id="ai_task.sonar",
+        task_name=task_name,
+        entity_id="ai_task.fast",
         instructions="Test instructions",
         structure=probatio.Schema({probatio.Required("key"): str}),
     )
 
     assert result.data == {"key": "value"}
+    response_format = mock_perplexity_client.responses.create.call_args.kwargs[
+        "response_format"
+    ]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["name"] == expected_name
 
 
 async def test_ai_task_generate_data_with_structure_strips_reasoning(
@@ -142,14 +156,14 @@ async def test_ai_task_generate_data_with_structure_strips_reasoning(
     mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task strips reasoning blocks before parsing structured data."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream('<think>\nReasoning here\n</think>\n{"key": "value"}')
     )
 
     result = await ai_task.async_generate_data(
         hass,
         task_name="Test task",
-        entity_id="ai_task.sonar",
+        entity_id="ai_task.fast",
         instructions="Test instructions",
         structure=probatio.Schema({probatio.Required("key"): str}),
     )
@@ -164,7 +178,7 @@ async def test_ai_task_generate_data_invalid_json(
     mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data with invalid JSON response."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
+    mock_perplexity_client.responses.create = AsyncMock(
         return_value=mock_stream("invalid json")
     )
 
@@ -174,50 +188,39 @@ async def test_ai_task_generate_data_invalid_json(
         await ai_task.async_generate_data(
             hass,
             task_name="Test task",
-            entity_id="ai_task.sonar",
+            entity_id="ai_task.fast",
             instructions="Test instructions",
             structure=probatio.Schema({probatio.Required("key"): str}),
         )
 
 
-async def test_ai_task_web_search_disabled_by_default(
-    hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
-) -> None:
-    """Test AI task has web search disabled by default."""
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_stream("Test response")
-    )
-
-    await ai_task.async_generate_data(
-        hass,
-        task_name="Test task",
-        entity_id="ai_task.sonar",
-        instructions="Test instructions",
-    )
-
-    call_kwargs = mock_perplexity_client.chat.completions.create.call_args.kwargs
-    assert call_kwargs["disable_search"] is True
-
-
-async def test_ai_task_web_search_enabled(
+@pytest.mark.parametrize(
+    ("subentry_data", "expected_reasoning"),
+    [
+        ({}, None),
+        ({CONF_REASONING_EFFORT: "high"}, {"effort": "high"}),
+        ({CONF_REASONING_EFFORT: "xhigh"}, {"effort": "xhigh"}),
+    ],
+)
+async def test_ai_task_request_args(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_stream: Callable[[str], Any],
+    subentry_data: dict[str, Any],
+    expected_reasoning: dict[str, str] | None,
 ) -> None:
-    """Test AI task with web search enabled."""
+    """Test the Agent API arguments for the reasoning options."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
+        version=2,
         data={"api_key": "test_api_key"},
         subentries_data=[
             {
-                "data": {CONF_MODEL: "sonar", CONF_WEB_SEARCH: True},
+                "data": {CONF_MODEL: "medium", **subentry_data},
                 "subentry_type": SUBENTRY_TYPE_AI_TASK,
-                "title": "Sonar",
-                "subentry_id": "ulid-ai-task-web",
+                "title": "Medium",
+                "subentry_id": "ulid-ai-task",
                 "unique_id": None,
             },
         ],
@@ -231,18 +234,147 @@ async def test_ai_task_web_search_enabled(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    mock_perplexity_client.chat.completions.create = AsyncMock(
-        return_value=mock_stream("Test response with web search")
+    mock_perplexity_client.responses.create = AsyncMock(
+        return_value=mock_stream("Test response")
     )
 
     result = await ai_task.async_generate_data(
         hass,
         task_name="Test task",
-        entity_id="ai_task.sonar",
+        entity_id="ai_task.medium",
         instructions="Test instructions",
     )
 
-    assert result.data == "Test response with web search"
+    assert result.data == "Test response"
 
-    call_kwargs = mock_perplexity_client.chat.completions.create.call_args.kwargs
-    assert call_kwargs["disable_search"] is False
+    call_kwargs = mock_perplexity_client.responses.create.call_args.kwargs
+    assert call_kwargs["preset"] == "medium"
+    assert call_kwargs["stream"] is True
+    assert "tool_choice" not in call_kwargs
+    assert call_kwargs.get("reasoning") == expected_reasoning
+    assert call_kwargs["instructions"].endswith(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
+    assert call_kwargs["input"][0] == {
+        "type": "message",
+        "role": "user",
+        "content": "Test instructions",
+    }
+
+
+async def _failed_stream() -> AsyncGenerator[MagicMock]:
+    """Yield a partial delta, then a failed response event."""
+    yield MagicMock(type="response.output_text.delta", delta="partial")
+    failed = MagicMock(type="response.failed")
+    failed.error.message = "Something broke"
+    yield failed
+
+
+async def _broken_stream() -> AsyncGenerator[MagicMock]:
+    """Yield a partial delta, then fail with an SDK error."""
+    yield MagicMock(type="response.output_text.delta", delta="partial")
+    raise PerplexityError("Connection lost")
+
+
+@pytest.mark.parametrize(
+    ("stream_factory", "error"),
+    [(_failed_stream, "Something broke"), (_broken_stream, "Connection lost")],
+)
+async def test_ai_task_stream_error(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    stream_factory: Callable[[], AsyncGenerator[MagicMock]],
+    error: str,
+) -> None:
+    """Test AI task raises when the stream fails mid-response."""
+    mock_perplexity_client.responses.create = AsyncMock(return_value=stream_factory())
+
+    with pytest.raises(
+        HomeAssistantError, match="Error talking to Perplexity API"
+    ) as exc_info:
+        await ai_task.async_generate_data(
+            hass,
+            task_name="Test task",
+            entity_id="ai_task.fast",
+            instructions="Test instructions",
+        )
+
+    assert exc_info.value.translation_key == "api_error"
+    assert exc_info.value.translation_placeholders == {
+        "entry": "Perplexity",
+        "error": error,
+    }
+
+
+async def test_ai_task_no_assistant_response(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test AI task raises when the stream contains no text."""
+
+    async def _empty_stream() -> AsyncGenerator[MagicMock]:
+        yield MagicMock(type="response.created")
+        yield MagicMock(
+            type="response.completed", response=MagicMock(status="completed")
+        )
+
+    mock_perplexity_client.responses.create = AsyncMock(return_value=_empty_stream())
+
+    with pytest.raises(
+        HomeAssistantError,
+        match="Last content in chat log is not an AssistantContent",
+    ):
+        await ai_task.async_generate_data(
+            hass,
+            task_name="Test task",
+            entity_id="ai_task.fast",
+            instructions="Test instructions",
+        )
+
+
+async def test_ai_task_generate_data_with_attachment(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    mock_stream: Callable[[str], Any],
+    tmp_path: Path,
+) -> None:
+    """Test image attachments are sent as Agent API input parts."""
+    image = tmp_path / "image.png"
+    image.write_bytes(b"fake-png")
+    mock_perplexity_client.responses.create = AsyncMock(
+        return_value=mock_stream("A cat")
+    )
+
+    with patch(
+        "homeassistant.components.media_source.async_resolve_media",
+        return_value=media_source.PlayMedia(
+            url="http://example.com/image.png", mime_type="image/png", path=image
+        ),
+    ):
+        result = await ai_task.async_generate_data(
+            hass,
+            task_name="Test task",
+            entity_id="ai_task.fast",
+            instructions="Describe the image",
+            attachments=[
+                {
+                    "media_content_id": "media-source://media/image.png",
+                    "media_content_type": "image/png",
+                }
+            ],
+        )
+
+    assert result.data == "A cat"
+    call_kwargs = mock_perplexity_client.responses.create.call_args.kwargs
+    assert call_kwargs["input"][0] == {
+        "type": "message",
+        "role": "user",
+        "content": [
+            {"type": "input_text", "text": "Describe the image"},
+            {
+                "type": "input_image",
+                "image_url": "data:image/png;base64,ZmFrZS1wbmc=",
+            },
+        ],
+    }

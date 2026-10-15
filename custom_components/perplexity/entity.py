@@ -1,7 +1,9 @@
 """Base entity for Perplexity."""
 
 import base64
+import re
 from collections.abc import AsyncGenerator, AsyncIterable, Callable
+from functools import partial
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,21 +20,23 @@ from homeassistant.helpers.entity import Entity
 from probatio import to_openapi
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
-from perplexity.types import StreamChunk
+from perplexity.types import ResponseStreamChunk
 
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
-    CONF_WEB_SEARCH,
-    DEFAULT_REASONING_EFFORT,
-    DEFAULT_WEB_SEARCH,
     DOMAIN,
-    REASONING_MODELS,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
-# Max number of back and forth with the LLM to generate a response
-MAX_TOOL_ITERATIONS = 10
+
+def _api_error(entry_title: str, error: str) -> HomeAssistantError:
+    """Build the translated API error."""
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="api_error",
+        translation_placeholders={"entry": entry_title, "error": error},
+    )
 
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
@@ -62,6 +66,8 @@ def _format_structured_output(
     name: str, schema: probatio.Schema, llm_api: llm.APIInstance | None
 ) -> dict[str, str | dict[str, Any]]:
     """Format the schema to be compatible with Perplexity API."""
+    # The API expects a 1-64 character name made of [A-Za-z0-9_-]
+    name = re.sub(r"[^A-Za-z0-9_-]", "_", name)[:64] or "response"
     result: dict[str, str | dict[str, Any]] = {
         "type": "json_schema",
         "json_schema": {
@@ -82,43 +88,78 @@ def _format_structured_output(
     return result
 
 
-def _convert_content_to_chat_message(
+def _convert_content_to_input_message(
     content: conversation.Content,
 ) -> dict[str, Any] | None:
-    """Convert any native chat message for this agent to the native format."""
+    """Convert user and assistant content to an Agent API input message."""
     if TYPE_CHECKING:
         assert not isinstance(content, conversation.ToolResultContent)
 
-    if content.role == "system" and content.content:
-        return {"role": "system", "content": content.content}
-
-    if content.role == "user" and content.content:
-        return {"role": "user", "content": content.content}
-
-    if content.role == "assistant" and content.content:
-        return {"role": "assistant", "content": content.content}
+    if content.role in ("user", "assistant") and content.content:
+        return {"type": "message", "role": content.role, "content": content.content}
 
     return None
 
 
+def _field(obj: object, key: str) -> Any:  # noqa: ANN401
+    """Return a field from a typed SDK model or a raw dict."""
+    # Fields the SDK models do not declare are kept as raw dicts
+    return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+
+def _incomplete_error(entry_title: str, response: object) -> HomeAssistantError:
+    """Return the error for a response truncated before completion."""
+    details = _field(response, "incomplete_details")
+    return HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key="response_incomplete",
+        translation_placeholders={
+            "entry": entry_title,
+            "reason": _field(details, "reason") or "unknown",
+        },
+    )
+
+
+async def _async_iter_text_deltas(
+    stream: AsyncIterable[ResponseStreamChunk], entry_title: str
+) -> AsyncGenerator[str]:
+    """Yield text deltas from the Perplexity stream."""
+    try:
+        async for chunk in stream:
+            if chunk.type == "response.output_text.delta":
+                yield chunk.delta
+            elif chunk.type == "response.failed":
+                raise _api_error(entry_title, chunk.error.message)
+            elif chunk.type == "response.completed":
+                # Failed and cancelled runs can still end with this event
+                status = _field(chunk.response, "status")
+                if status == "incomplete":
+                    raise _incomplete_error(entry_title, chunk.response)
+                if status not in (None, "completed"):
+                    error = _field(_field(chunk.response, "error"), "message")
+                    raise _api_error(entry_title, error or f"response {status}")
+            else:
+                # The SDK union lacks these terminals, so they arrive loosely typed
+                event_type: str = chunk.type
+                if event_type == "response.incomplete":
+                    raise _incomplete_error(entry_title, _field(chunk, "response"))
+                if event_type in ("response.cancelled", "error"):
+                    error = _field(_field(chunk, "error"), "message")
+                    raise _api_error(entry_title, error or event_type)
+    except PerplexityError as err:
+        raise _api_error(entry_title, str(err)) from err
+
+
 async def _transform_stream(
-    stream: AsyncIterable[StreamChunk],
+    stream: AsyncIterable[ResponseStreamChunk], entry_title: str
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform the Perplexity stream to delta content."""
     first = True
-    async for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta:
-            if first:
-                yield {"role": "assistant"}
-                first = False
-            delta_content = chunk.choices[0].delta.content
-            if delta_content:
-                # Content may be str or a complex type - ensure we have str
-                if isinstance(delta_content, str):
-                    yield {"content": delta_content}
-                else:
-                    # Handle potential list of content chunks
-                    yield {"content": str(delta_content)}
+    async for delta in _async_iter_text_deltas(stream, entry_title):
+        if first:
+            yield {"role": "assistant"}
+            first = False
+        yield {"content": delta}
 
 
 async def _async_prepare_files_for_prompt(
@@ -153,8 +194,8 @@ async def _async_prepare_files_for_prompt(
         base64_file = base64.b64encode(file_bytes).decode("utf-8")
         content.append(
             {
-                "type": "image_url",
-                "image_url": {"url": f"data:{mime_type};base64,{base64_file}"},
+                "type": "input_image",
+                "image_url": f"data:{mime_type};base64,{base64_file}",
             }
         )
 
@@ -185,36 +226,33 @@ class PerplexityEntity(Entity):
         structure: probatio.Schema | None = None,
         response_format: dict[str, Any] | None = None,
         stream_transform: Callable[
-            [AsyncIterable[StreamChunk]],
+            [AsyncIterable[ResponseStreamChunk]],
             AsyncGenerator[conversation.AssistantContentDeltaDict],
         ]
         | None = None,
-        max_iterations: int = MAX_TOOL_ITERATIONS,
     ) -> None:
         """Generate an answer for the chat log."""
-        web_search = self.subentry.data.get(CONF_WEB_SEARCH, DEFAULT_WEB_SEARCH)
-        model_args: dict[str, Any] = {
-            "model": self.model,
-            "disable_search": not web_search,
-            "stream": True,
-        }
+        model_args: dict[str, Any] = {"preset": self.model, "stream": True}
 
-        if self.model in REASONING_MODELS:
-            model_args["reasoning_effort"] = self.subentry.data.get(
-                CONF_REASONING_EFFORT, DEFAULT_REASONING_EFFORT
-            )
+        if CONF_REASONING_EFFORT in self.subentry.data:
+            model_args["reasoning"] = {
+                "effort": self.subentry.data[CONF_REASONING_EFFORT]
+            }
 
-        model_args["messages"] = [
+        instructions = [
+            content.content
+            for content in chat_log.content
+            if isinstance(content, conversation.SystemContent) and content.content
+        ]
+        # Presets always search the web and the API offers no way to turn it off
+        instructions.append(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
+        model_args["instructions"] = "\n".join(instructions)
+
+        model_args["input"] = [
             m
             for content in chat_log.content
-            if (m := _convert_content_to_chat_message(content))
+            if (m := _convert_content_to_input_message(content))
         ]
-
-        # Add instruction to not include citations when web search is enabled
-        if web_search and model_args["messages"]:
-            first_message = model_args["messages"][0]
-            if first_message["role"] == "system":
-                first_message["content"] += f"\n{WEB_SEARCH_ADDITIONAL_INSTRUCTION}"
 
         last_content = chat_log.content[-1]
 
@@ -223,7 +261,7 @@ class PerplexityEntity(Entity):
             isinstance(last_content, conversation.UserContent)
             and last_content.attachments
         ):
-            last_message = model_args["messages"][-1]
+            last_message = model_args["input"][-1]
 
             if TYPE_CHECKING:
                 assert last_message["role"] == "user"
@@ -234,7 +272,7 @@ class PerplexityEntity(Entity):
                 [(a.path, a.mime_type) for a in last_content.attachments],
             )
             last_message["content"] = [
-                {"type": "text", "text": last_message["content"]},
+                {"type": "input_text", "text": last_message["content"]},
                 *files,
             ]
 
@@ -247,35 +285,22 @@ class PerplexityEntity(Entity):
 
         client: AsyncPerplexity = self.entry.runtime_data
 
-        for _iteration in range(max_iterations):
-            try:
-                stream = await client.chat.completions.create(**model_args)
-            except AuthenticationError as err:
-                self.entry.async_start_reauth(self.hass)
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="auth_error",
-                    translation_placeholders={"entry": self.entry.title},
-                ) from err
-            except PerplexityError as err:
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="api_error",
-                    translation_placeholders={
-                        "entry": self.entry.title,
-                        "error": str(err),
-                    },
-                ) from err
+        try:
+            stream = await client.responses.create(**model_args)
+        except AuthenticationError as err:
+            self.entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="auth_error",
+                translation_placeholders={"entry": self.entry.title},
+            ) from err
+        except PerplexityError as err:
+            raise _api_error(self.entry.title, str(err)) from err
 
-            transform = stream_transform or _transform_stream
-            model_args["messages"].extend(
-                [
-                    msg
-                    async for content in chat_log.async_add_delta_content_stream(
-                        self.entity_id, transform(stream)
-                    )
-                    if (msg := _convert_content_to_chat_message(content))
-                ]
-            )
-            if not chat_log.unresponded_tool_results:
-                break
+        transform = stream_transform or partial(
+            _transform_stream, entry_title=self.entry.title
+        )
+        async for _ in chat_log.async_add_delta_content_stream(
+            self.entity_id, transform(stream)
+        ):
+            pass

@@ -41,25 +41,26 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
     entry = MockConfigEntry(
         domain=DOMAIN,
         title="Perplexity",
+        version=2,
         data={
             CONF_API_KEY: "test_api_key",
         },
         subentries_data=[
             {
-                "data": {CONF_MODEL: "sonar"},
+                "data": {CONF_MODEL: "fast"},
                 "subentry_type": SUBENTRY_TYPE_AI_TASK,
-                "title": "Sonar",
+                "title": "Fast",
                 "subentry_id": "ulid-ai-task",
                 "unique_id": None,
             },
             {
                 "data": {
                     CONF_LLM_HASS_API: ["assist"],
-                    CONF_MODEL: "sonar",
+                    CONF_MODEL: "fast",
                     CONF_PROMPT: "instruction",
                 },
                 "subentry_type": SUBENTRY_TYPE_CONVERSATION,
-                "title": "Sonar",
+                "title": "Fast",
                 "subentry_id": "ulid-conversation",
                 "unique_id": None,
             },
@@ -77,9 +78,8 @@ def mock_perplexity_client() -> Generator[MagicMock]:
     ) as mock_client:
         client = mock_client.return_value
         client.platform_headers = MagicMock(return_value={})
-        client.chat = MagicMock()
-        client.chat.completions = MagicMock()
-        client.chat.completions.create = AsyncMock(return_value=MagicMock())
+        client.responses = MagicMock()
+        client.responses.create = AsyncMock(return_value=MagicMock())
         yield client
 
 
@@ -105,23 +105,11 @@ def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     return snapshot.use_extension(SnapshotExtension)
 
 
-async def mock_stream_response(content: str) -> AsyncGenerator[MagicMock]:
-    """Create a mock stream response."""
-    mock_chunk = MagicMock()
-    mock_chunk.choices = [MagicMock()]
-    mock_chunk.choices[0].delta = MagicMock()
-    mock_chunk.choices[0].delta.content = content
-    yield mock_chunk
-
-
-def create_mock_stream(content: str) -> AsyncGenerator[MagicMock]:
-    """Create a mock stream for the given content."""
-
-    async def _stream() -> AsyncGenerator[MagicMock]:
-        async for chunk in mock_stream_response(content):
-            yield chunk
-
-    return _stream()
+async def create_mock_stream(content: str) -> AsyncGenerator[MagicMock]:
+    """Create a mock Agent API stream yielding the given text."""
+    yield MagicMock(type="response.created")
+    yield MagicMock(type="response.output_text.delta", delta=content)
+    yield MagicMock(type="response.completed", response=MagicMock(status="completed"))
 
 
 @pytest.fixture

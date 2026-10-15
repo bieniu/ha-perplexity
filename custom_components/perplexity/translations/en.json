@@ -52,21 +52,19 @@
             "step": {
                 "reconfigure": {
                     "data": {
-                        "reasoning_effort": "Reasoning effort",
-                        "web_search": "Web search"
+                        "reasoning_effort": "Reasoning effort"
                     },
                     "data_description": {
-                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
-                        "web_search": "Enable web search to get up-to-date information from the internet"
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning. Leave empty to use the preset default"
                     },
                     "description": "Configure the AI task options"
                 },
                 "user": {
                     "data": {
-                        "model": "Model"
+                        "model": "Preset"
                     },
                     "data_description": {
-                        "model": "The model to use for the AI task"
+                        "model": "The Perplexity preset to use for the AI task"
                     },
                     "description": "Configure the new AI task"
                 }
@@ -86,17 +84,15 @@
                     "data": {
                         "include_home_location": "Include home location",
                         "llm_hass_api": "Control Home Assistant",
-                        "model": "Model",
+                        "model": "Preset",
                         "prompt": "Instructions",
-                        "reasoning_effort": "Reasoning effort",
-                        "web_search": "Web search"
+                        "reasoning_effort": "Reasoning effort"
                     },
                     "data_description": {
                         "include_home_location": "Allows to provide LLM with information about your home's location",
-                        "model": "The model to use for the conversation agent",
+                        "model": "The Perplexity preset to use for the conversation agent",
                         "prompt": "Instruct how the LLM should respond. This can be a template.",
-                        "reasoning_effort": "Controls how much effort the model spends on reasoning",
-                        "web_search": "Enable web search to get up-to-date information from the internet"
+                        "reasoning_effort": "Controls how much effort the model spends on reasoning. Leave empty to use the preset default"
                     },
                     "description": "Configure the conversation agent"
                 }
@@ -116,6 +112,9 @@
         "no_assistant_response": {
             "message": "Last content in chat log is not an AssistantContent"
         },
+        "response_incomplete": {
+            "message": "The response from {entry} was cut short ({reason}), try again or simplify your request"
+        },
         "structured_response_error": {
             "message": "Error with Perplexity structured response: {error}"
         },
@@ -129,7 +128,8 @@
                 "minimal": "Minimal",
                 "low": "Low",
                 "medium": "Medium",
-                "high": "High"
+                "high": "High",
+                "xhigh": "Extra high"
             }
         }
     }
