@@ -12,6 +12,7 @@ from homeassistant.const import CONF_MODEL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import llm
 from perplexity import PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from syrupy.assertion import SnapshotAssertion
@@ -251,6 +252,7 @@ async def test_ai_task_request_args(
     assert call_kwargs["preset"] == "medium"
     assert call_kwargs["stream"] is True
     assert "tool_choice" not in call_kwargs
+    assert "tools" not in call_kwargs
     assert call_kwargs.get("reasoning") == expected_reasoning
     assert call_kwargs["instructions"].endswith(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
     assert call_kwargs["input"][0] == {
@@ -258,6 +260,34 @@ async def test_ai_task_request_args(
         "role": "user",
         "content": "Test instructions",
     }
+
+
+async def test_ai_task_request_args_with_llm_api(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    mock_stream: Callable[..., Any],
+) -> None:
+    """Test tools and the structure are sent together when an API is given."""
+    mock_perplexity_client.responses.create = AsyncMock(
+        return_value=mock_stream('{"name": "kitchen"}')
+    )
+    assist_api = next(api for api in llm.async_get_apis(hass) if api.id == "assist")
+
+    result = await ai_task.async_generate_data(
+        hass,
+        task_name="Test task",
+        entity_id="ai_task.fast",
+        instructions="Which room is this?",
+        structure=probatio.Schema({probatio.Required("name"): str}),
+        llm_api=assist_api,
+    )
+
+    assert result.data == {"name": "kitchen"}
+
+    call_kwargs = mock_perplexity_client.responses.create.call_args.kwargs
+    assert call_kwargs["response_format"]["type"] == "json_schema"
+    assert "llm__GetDateTime" in [tool["name"] for tool in call_kwargs["tools"]]
 
 
 async def _failed_stream() -> AsyncGenerator[MagicMock]:

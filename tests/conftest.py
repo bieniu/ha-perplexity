@@ -1,15 +1,28 @@
 """Tests helpers for the Perplexity integration."""
 
-from collections.abc import AsyncGenerator, Callable, Generator
+from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from homeassistant.components.conversation.const import DOMAIN as CONVERSATION_DOMAIN
+from homeassistant.components.homeassistant.exposed_entities import (
+    async_expose_entity,
+)
 from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from perplexity.types.function_call_output_item import FunctionCallOutputItem
+from perplexity.types.output_item import MessageOutputItem
+from perplexity.types.response_stream_chunk import (
+    OutputItemAddedEvent,
+    OutputItemDoneEvent,
+)
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_mock_service,
+)
 from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.amber import AmberSnapshotExtension
 from syrupy.location import PyTestLocation
@@ -105,17 +118,79 @@ def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     return snapshot.use_extension(SnapshotExtension)
 
 
-async def create_mock_stream(content: str) -> AsyncGenerator[MagicMock]:
-    """Create a mock Agent API stream yielding the given text."""
+def function_call_item(
+    name: str,
+    arguments: str,
+    call_id: str = "call_1",
+    thought_signature: str | None = None,
+) -> FunctionCallOutputItem:
+    """Return a function call output item as the Agent API streams it."""
+    return FunctionCallOutputItem(
+        id=f"fc_{call_id}",
+        call_id=call_id,
+        name=name,
+        arguments=arguments,
+        status="completed",
+        type="function_call",
+        thought_signature=thought_signature,
+    )
+
+
+def message_item() -> MessageOutputItem:
+    """Return an assistant message output item."""
+    return MessageOutputItem(
+        id="msg_1", content=[], role="assistant", status="in_progress", type="message"
+    )
+
+
+def output_item_events(
+    item: FunctionCallOutputItem | MessageOutputItem,
+) -> tuple[OutputItemAddedEvent, OutputItemDoneEvent]:
+    """Return the added and done events for an output item."""
+    return (
+        OutputItemAddedEvent(
+            item=item,
+            output_index=0,
+            sequence_number=1,
+            type="response.output_item.added",
+        ),
+        OutputItemDoneEvent(
+            item=item,
+            output_index=0,
+            sequence_number=2,
+            type="response.output_item.done",
+        ),
+    )
+
+
+async def create_mock_stream(
+    content: str = "",
+    tool_calls: Sequence[FunctionCallOutputItem] = (),
+) -> AsyncGenerator[Any]:
+    """Create a mock Agent API stream yielding tool calls and then text."""
     yield MagicMock(type="response.created")
-    yield MagicMock(type="response.output_text.delta", delta=content)
+    for call in tool_calls:
+        added, done = output_item_events(call)
+        yield added
+        yield done
+    if content:
+        yield output_item_events(message_item())[0]
+        yield MagicMock(type="response.output_text.delta", delta=content)
     yield MagicMock(type="response.completed", response=MagicMock(status="completed"))
 
 
 @pytest.fixture
-def mock_stream() -> Callable[[str], AsyncGenerator[MagicMock]]:
+def mock_stream() -> Callable[..., AsyncGenerator[Any]]:
     """Mock stream fixture."""
     return create_mock_stream
+
+
+def expose_light(hass: HomeAssistant) -> list[ServiceCall]:
+    """Expose a living room light to Assist and mock its turn_on service."""
+    hass.states.async_set("light.living_room", "off", {"friendly_name": "Living room"})
+    async_expose_entity(hass, CONVERSATION_DOMAIN, "light.living_room", True)  # noqa: FBT003
+    # The intent handler refuses entities whose service is not registered
+    return async_mock_service(hass, "light", "turn_on")
 
 
 class SnapshotExtension(AmberSnapshotExtension):
