@@ -1,229 +1,21 @@
 """Conversation platform for Perplexity integration."""
 
-import re
-from collections.abc import AsyncGenerator, AsyncIterable
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Literal
 
 from homeassistant.components import conversation
-from homeassistant.components.homeassistant.llm import (
-    NO_ENTITIES_PROMPT,
-    async_get_exposed_entities,
-)
-from homeassistant.components.intent import async_device_supports_timers
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant
-from homeassistant.helpers import intent
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.event import async_call_later
-from homeassistant.helpers.json import json_dumps
-from homeassistant.util import yaml as yaml_util
-from homeassistant.util.json import JSON_DECODE_EXCEPTIONS, json_loads_object
-
-from perplexity.types import ResponseStreamChunk
 
 from . import PerplexityConfigEntry
 from .const import (
-    ACTION_INSTRUCTIONS,
-    ACTION_RESPONSE_SCHEMA,
     CONF_INCLUDE_HOME_LOCATION,
     CONF_PROMPT,
     DOMAIN,
-    LOGGER,
     SUBENTRY_TYPE_CONVERSATION,
-    TIMERS_UNSUPPORTED,
 )
-from .entity import PerplexityEntity, _async_iter_text_deltas
-
-
-@dataclass
-class ParsedAction:
-    """Represents a parsed action from the LLM response."""
-
-    domain: str
-    service: str
-    target: str
-    data: dict[str, Any] = field(default_factory=dict)
-    delay_seconds: float | None = None
-
-    def __str__(self) -> str:
-        """Return string representation."""
-        data_str = json_dumps(self.data) if self.data else "{}"
-        delay_str = f" [delay={self.delay_seconds}s]" if self.delay_seconds else ""
-        return f"{self.domain}.{self.service} -> {self.target} ({data_str}){delay_str}"
-
-
-TIMER_COMMAND_TO_INTENT: dict[str, str] = {
-    "start": intent.INTENT_START_TIMER,
-    "cancel": intent.INTENT_CANCEL_TIMER,
-    "cancel_all": intent.INTENT_CANCEL_ALL_TIMERS,
-    "pause": intent.INTENT_PAUSE_TIMER,
-    "unpause": intent.INTENT_UNPAUSE_TIMER,
-    "increase": intent.INTENT_INCREASE_TIMER,
-    "decrease": intent.INTENT_DECREASE_TIMER,
-    "status": intent.INTENT_TIMER_STATUS,
-}
-
-
-@dataclass
-class ParsedTimerAction:
-    """Represents a parsed timer action from the LLM response."""
-
-    command: str
-    name: str | None = None
-    hours: int | None = None
-    minutes: int | None = None
-    seconds: int | None = None
-
-    def __str__(self) -> str:
-        """Return string representation."""
-        parts = [f"timer.{self.command}"]
-        if self.name:
-            parts.append(f"name={self.name}")
-        time_parts = []
-        if self.hours:
-            time_parts.append(f"{self.hours}h")
-        if self.minutes:
-            time_parts.append(f"{self.minutes}m")
-        if self.seconds:
-            time_parts.append(f"{self.seconds}s")
-        if time_parts:
-            parts.append("".join(time_parts))
-        return " ".join(parts)
-
-
-@dataclass
-class ParsedResponse:
-    """Represents a parsed response from the LLM."""
-
-    content: str
-    actions: list[ParsedAction] = field(default_factory=list)
-    timer_actions: list[ParsedTimerAction] = field(default_factory=list)
-
-
-def _parse_json_response(response_text: str) -> ParsedResponse:
-    """Parse the JSON response from the LLM."""
-    try:
-        data = json_loads_object(response_text)
-    except JSON_DECODE_EXCEPTIONS:
-        # If JSON parsing fails, try to extract JSON from markdown code blocks
-        json_match = re.search(
-            r"```(?:json)?\s*(\{.*?\})\s*```", response_text, re.DOTALL
-        )
-        if json_match:
-            try:
-                data = json_loads_object(json_match.group(1))
-            except JSON_DECODE_EXCEPTIONS:
-                return ParsedResponse(content=response_text)
-        else:
-            return ParsedResponse(content=response_text)
-
-    # Extract response text
-    content_value = data.get("response")
-    if isinstance(content_value, str):
-        content = content_value
-    else:
-        content_value = data.get("content")
-        content = content_value if isinstance(content_value, str) else ""
-
-    # Extract actions
-    actions: list[ParsedAction] = []
-    raw_actions = data.get("actions")
-    if isinstance(raw_actions, list):
-        for action_data in raw_actions:
-            if not isinstance(action_data, dict):
-                continue
-            domain = action_data.get("domain")
-            service = action_data.get("service")
-            target = action_data.get("target")
-            raw_data = action_data.get("data")
-            if (
-                isinstance(domain, str)
-                and isinstance(service, str)
-                and isinstance(target, str)
-            ):
-                raw_delay = action_data.get("delay_seconds")
-                delay_seconds: float | None = None
-                if isinstance(raw_delay, (int, float)) and raw_delay > 0:
-                    delay_seconds = float(raw_delay)
-                actions.append(
-                    ParsedAction(
-                        domain=domain,
-                        service=service,
-                        target=target,
-                        data=raw_data if isinstance(raw_data, dict) else {},
-                        delay_seconds=delay_seconds,
-                    )
-                )
-
-    return ParsedResponse(
-        content=content or response_text,
-        actions=actions,
-        timer_actions=_parse_timer_actions(data),
-    )
-
-
-def _parse_timer_actions(data: dict[str, Any]) -> list[ParsedTimerAction]:
-    """Parse timer actions from the response data."""
-    timer_actions: list[ParsedTimerAction] = []
-    raw_timer_actions = data.get("timer_actions")
-    if not isinstance(raw_timer_actions, list):
-        return timer_actions
-
-    for timer_data in raw_timer_actions:
-        if not isinstance(timer_data, dict):
-            continue
-        command = timer_data.get("command")
-        if not isinstance(command, str) or command not in TIMER_COMMAND_TO_INTENT:
-            continue
-
-        name = timer_data.get("name")
-        hours = timer_data.get("hours")
-        minutes = timer_data.get("minutes")
-        seconds = timer_data.get("seconds")
-
-        timer_actions.append(
-            ParsedTimerAction(
-                command=command,
-                name=name if isinstance(name, str) else None,
-                hours=int(hours) if isinstance(hours, (int, float)) else None,
-                minutes=int(minutes) if isinstance(minutes, (int, float)) else None,
-                seconds=int(seconds) if isinstance(seconds, (int, float)) else None,
-            )
-        )
-
-    return timer_actions
-
-
-def _build_timer_slots(timer_action: ParsedTimerAction) -> dict[str, Any]:
-    """Build intent slots from a parsed timer action."""
-    slots: dict[str, Any] = {}
-
-    if timer_action.name:
-        slots["name"] = {"value": timer_action.name}
-
-    if timer_action.command == "start":
-        _add_time_slots(slots, timer_action, prefix="")
-    elif timer_action.command in ("cancel", "pause", "unpause", "status"):
-        _add_time_slots(slots, timer_action, prefix="start_")
-    elif timer_action.command in ("increase", "decrease"):
-        _add_time_slots(slots, timer_action, prefix="")
-
-    return slots
-
-
-def _add_time_slots(
-    slots: dict[str, Any], timer_action: ParsedTimerAction, prefix: str
-) -> None:
-    """Add time-related slots with the given prefix."""
-    if timer_action.hours is not None:
-        slots[f"{prefix}hours"] = {"value": timer_action.hours}
-    if timer_action.minutes is not None:
-        slots[f"{prefix}minutes"] = {"value": timer_action.minutes}
-    if timer_action.seconds is not None:
-        slots[f"{prefix}seconds"] = {"value": timer_action.seconds}
+from .entity import PerplexityEntity
 
 
 async def async_setup_entry(
@@ -240,19 +32,18 @@ async def async_setup_entry(
 
 
 class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEntity):
-    """Perplexity conversation agent with custom action parsing."""
+    """Perplexity conversation agent."""
 
     _attr_name = None
+    _attr_supports_streaming = True
 
     def __init__(self, entry: PerplexityConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the agent."""
         super().__init__(entry, subentry)
-        self._llm_api_ids: list[str] | None = subentry.data.get(CONF_LLM_HASS_API)
-        if self._llm_api_ids:
+        if subentry.data.get(CONF_LLM_HASS_API):
             self._attr_supported_features = (
                 conversation.ConversationEntityFeature.CONTROL
             )
-        self._scheduled_actions: list[CALLBACK_TYPE] = []
 
     @property
     def supported_languages(self) -> list[str] | Literal["*"]:
@@ -266,24 +57,13 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
     ) -> conversation.ConversationResult:
         """Process the user input and call the API."""
         options = self.subentry.data
-        user_prompt = options.get(CONF_PROMPT)
-        llm_api_ids = options.get(CONF_LLM_HASS_API)
-
-        extra_system_prompt = self._build_extra_system_prompt(
-            user_input.extra_system_prompt
-        )
-
-        if llm_api_ids:
-            return await self._async_handle_with_actions(
-                user_input, chat_log, user_prompt, llm_api_ids, extra_system_prompt
-            )
 
         try:
             await chat_log.async_provide_llm_data(
                 user_input.as_llm_context(DOMAIN),
-                None,
-                user_prompt,
-                extra_system_prompt,
+                options.get(CONF_LLM_HASS_API),
+                options.get(CONF_PROMPT),
+                self._build_extra_system_prompt(user_input.extra_system_prompt),
             )
         except conversation.ConverseError as err:
             return err.as_conversation_result()
@@ -327,178 +107,3 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
             return None
 
         return "User's home location information:\n" + "\n".join(location_parts)
-
-    async def _async_handle_with_actions(
-        self,
-        user_input: conversation.ConversationInput,
-        chat_log: conversation.ChatLog,
-        user_prompt: str | None,
-        llm_api_ids: list[str],
-        extra_system_prompt: str | None,
-    ) -> conversation.ConversationResult:
-        """Handle conversation with custom action parsing."""
-        extra_parts: list[str] = []
-
-        if extra_system_prompt:
-            extra_parts.append(extra_system_prompt)
-        extra_parts.append(ACTION_INSTRUCTIONS)
-
-        if not user_input.device_id or not async_device_supports_timers(
-            self.hass, user_input.device_id
-        ):
-            extra_parts.append(TIMERS_UNSUPPORTED)
-
-        extra_parts.append(await self._async_generate_entity_context(llm_api_ids))
-
-        try:
-            await chat_log.async_provide_llm_data(
-                user_input.as_llm_context(DOMAIN),
-                None,
-                user_prompt,
-                "\n".join(extra_parts),
-            )
-        except conversation.ConverseError as err:
-            return err.as_conversation_result()
-
-        # Buffer the stream and parse JSON so only text is visible to the user
-        parsed_results: list[ParsedResponse] = []
-
-        async def _buffer_and_parse(
-            stream: AsyncIterable[ResponseStreamChunk],
-        ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
-            """Buffer the full stream, parse JSON, yield only text content."""
-            full_content = "".join(
-                [
-                    delta
-                    async for delta in _async_iter_text_deltas(stream, self.entry.title)
-                ]
-            )
-            parsed = _parse_json_response(full_content)
-            parsed_results.append(parsed)
-            yield {"role": "assistant"}
-            if parsed.content:
-                yield {"content": parsed.content}
-
-        await self._async_handle_chat_log(
-            chat_log,
-            response_format=ACTION_RESPONSE_SCHEMA,
-            stream_transform=_buffer_and_parse,
-        )
-
-        # Execute actions from the parsed response
-        if parsed_results:
-            for action in parsed_results[0].actions:
-                await self._async_execute_action(action)
-            for timer_action in parsed_results[0].timer_actions:
-                await self._async_execute_timer_action(timer_action, user_input)
-
-        return conversation.async_get_result_from_chat_log(user_input, chat_log)
-
-    async def _async_generate_entity_context(self, llm_api_ids: list[str]) -> str:
-        """Generate entity context for the system prompt."""
-        exposed_entities = async_get_exposed_entities(
-            self.hass, conversation.DOMAIN, include_state=True
-        )
-
-        if not exposed_entities:
-            return NO_ENTITIES_PROMPT
-
-        return (
-            "An overview of the areas and the devices in this smart home:\n"
-            + yaml_util.dump(exposed_entities)
-        )
-
-    async def _async_execute_action(self, action: ParsedAction) -> None:
-        """Execute a parsed action, optionally with a delay."""
-        if action.delay_seconds:
-            LOGGER.debug(
-                "Scheduling action: %s.%s on %s with data %s after %s seconds",
-                action.domain,
-                action.service,
-                action.target,
-                action.data,
-                action.delay_seconds,
-            )
-            self._schedule_delayed_action(action)
-            return
-
-        await self._async_call_action(action)
-
-    async def _async_call_action(self, action: ParsedAction) -> None:
-        """Call a Home Assistant service for the given action."""
-        LOGGER.debug(
-            "Executing action: %s.%s on %s with data %s",
-            action.domain,
-            action.service,
-            action.target,
-            action.data,
-        )
-
-        service_data: dict[str, Any] = {"entity_id": action.target}
-        if action.data:
-            service_data.update(action.data)
-        await self.hass.services.async_call(
-            action.domain,
-            action.service,
-            service_data,
-            blocking=True,
-        )
-
-    def _schedule_delayed_action(self, action: ParsedAction) -> None:
-        """Schedule an action to execute after a delay."""
-
-        async def _delayed_callback(_now: datetime) -> None:
-            """Execute the delayed action."""
-            LOGGER.debug(
-                "Executing delayed action: %s.%s on %s",
-                action.domain,
-                action.service,
-                action.target,
-            )
-            await self._async_call_action(action)
-
-        if TYPE_CHECKING:
-            assert action.delay_seconds is not None
-
-        cancel: CALLBACK_TYPE = async_call_later(
-            self.hass,
-            timedelta(seconds=action.delay_seconds),
-            _delayed_callback,
-        )
-        self._scheduled_actions.append(cancel)
-
-    async def _async_execute_timer_action(
-        self,
-        timer_action: ParsedTimerAction,
-        user_input: conversation.ConversationInput,
-    ) -> None:
-        """Execute a timer action by firing the corresponding intent."""
-        intent_type = TIMER_COMMAND_TO_INTENT.get(timer_action.command)
-        if not intent_type:
-            LOGGER.warning("Unknown timer command: %s", timer_action.command)
-            return
-
-        LOGGER.debug("Executing timer action: %s", timer_action)
-        slots = _build_timer_slots(timer_action)
-
-        try:
-            await intent.async_handle(
-                hass=self.hass,
-                platform=DOMAIN,
-                intent_type=intent_type,
-                slots=slots,
-                text_input=user_input.text,
-                context=user_input.context,
-                language=user_input.language,
-                assistant=conversation.DOMAIN,
-                device_id=user_input.device_id,
-                conversation_agent_id=user_input.agent_id,
-            )
-        except intent.IntentHandleError as err:
-            LOGGER.warning("Timer action failed: %s", err)
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Cancel all scheduled actions when entity is removed."""
-        for cancel in self._scheduled_actions:
-            cancel()
-        self._scheduled_actions.clear()

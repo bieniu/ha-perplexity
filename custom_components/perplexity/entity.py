@@ -1,9 +1,9 @@
 """Base entity for Perplexity."""
 
 import base64
+import json
 import re
-from collections.abc import AsyncGenerator, AsyncIterable, Callable
-from functools import partial
+from collections.abc import AsyncGenerator, AsyncIterable, Callable, Iterable
 from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -17,17 +17,29 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import llm
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.json import json_dumps
 from probatio import to_openapi
 
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import ResponseStreamChunk
 
+# The stream parser builds these classes, the package re-exports a different one
+from perplexity.types.function_call_output_item import FunctionCallOutputItem
+from perplexity.types.output_item import MessageOutputItem
+
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
     DOMAIN,
+    LOGGER,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
+
+# Max number of back and forth with the LLM to generate a response
+MAX_TOOL_ITERATIONS = 10
+
+# The API rejects custom tools using the names of its built-in tools
+RESERVED_TOOL_NAMES = {"web_search"}
 
 
 def _api_error(entry_title: str, error: str) -> HomeAssistantError:
@@ -88,17 +100,76 @@ def _format_structured_output(
     return result
 
 
-def _convert_content_to_input_message(
-    content: conversation.Content,
-) -> dict[str, Any] | None:
-    """Convert user and assistant content to an Agent API input message."""
-    if TYPE_CHECKING:
-        assert not isinstance(content, conversation.ToolResultContent)
+def _format_tool(
+    tool: llm.Tool, custom_serializer: Callable[[Any], Any] | None
+) -> dict[str, Any]:
+    """Format a Home Assistant tool as an Agent API function tool."""
+    schema = to_openapi(
+        tool.parameters, custom_serializer=custom_serializer, openapi_version="3.1.0"
+    )
+    # Function schemas do not accept combinators at the top level
+    unsupported_keys = {"oneOf", "anyOf", "allOf", "enum", "not"}
+    schema = {k: v for k, v in schema.items() if k not in unsupported_keys}
 
-    if content.role in ("user", "assistant") and content.content:
-        return {"type": "message", "role": content.role, "content": content.content}
+    result: dict[str, Any] = {
+        "type": "function",
+        "name": tool.name,
+        "parameters": schema,
+        "strict": False,
+    }
+    if tool.description:
+        result["description"] = tool.description
+    return result
 
-    return None
+
+def _convert_content_to_input(
+    chat_content: Iterable[conversation.Content],
+) -> list[dict[str, Any]]:
+    """Convert chat log content to Agent API input items."""
+    items: list[dict[str, Any]] = []
+    # Thinking models need their signature echoed on the call and its result
+    signatures: dict[str, str] = {}
+
+    for content in chat_content:
+        if isinstance(content, conversation.ToolResultContent):
+            output = {
+                "type": "function_call_output",
+                "call_id": content.tool_call_id,
+                "name": content.tool_name,
+                "output": json_dumps(
+                    {"data": content.result.data, "error": content.result.error}
+                ),
+            }
+            if signature := signatures.get(content.tool_call_id):
+                output["thought_signature"] = signature
+            items.append(output)
+            continue
+
+        # System content is sent as instructions
+        if content.role == "system":
+            continue
+
+        if content.content:
+            items.append(
+                {"type": "message", "role": content.role, "content": content.content}
+            )
+
+        if isinstance(content, conversation.AssistantContent) and content.tool_calls:
+            # Other agents may store any native data, only ours is a signature map
+            if isinstance(content.native, dict):
+                signatures.update(content.native)
+            for tool_call in content.tool_calls:
+                call = {
+                    "type": "function_call",
+                    "call_id": tool_call.id,
+                    "name": tool_call.tool_name,
+                    "arguments": json_dumps(tool_call.tool_args),
+                }
+                if signature := signatures.get(tool_call.id):
+                    call["thought_signature"] = signature
+                items.append(call)
+
+    return items
 
 
 def _field(obj: object, key: str) -> Any:  # noqa: ANN401
@@ -120,32 +191,42 @@ def _incomplete_error(entry_title: str, response: object) -> HomeAssistantError:
     )
 
 
-async def _async_iter_text_deltas(
+def _decode_tool_arguments(arguments: str | None, entry_title: str) -> dict[str, Any]:
+    """Decode tool call arguments, which are empty for parameterless tools."""
+    try:
+        tool_args = json.loads(arguments or "{}")
+    except json.JSONDecodeError as err:
+        raise _api_error(entry_title, f"invalid tool arguments: {err}") from err
+    if not isinstance(tool_args, dict):
+        raise _api_error(entry_title, "tool arguments are not an object")
+    return tool_args
+
+
+async def _async_iter_events(
     stream: AsyncIterable[ResponseStreamChunk], entry_title: str
-) -> AsyncGenerator[str]:
-    """Yield text deltas from the Perplexity stream."""
+) -> AsyncGenerator[ResponseStreamChunk]:
+    """Yield stream events, raising on failed or truncated responses."""
     try:
         async for chunk in stream:
-            if chunk.type == "response.output_text.delta":
-                yield chunk.delta
-            elif chunk.type == "response.failed":
+            if chunk.type == "response.failed":
                 raise _api_error(entry_title, chunk.error.message)
-            elif chunk.type == "response.completed":
+            if chunk.type == "response.completed":
                 # Failed and cancelled runs can still end with this event
                 status = _field(chunk.response, "status")
                 if status == "incomplete":
                     raise _incomplete_error(entry_title, chunk.response)
-                if status not in (None, "completed"):
+                if status not in (None, "completed", "requires_action"):
                     error = _field(_field(chunk.response, "error"), "message")
                     raise _api_error(entry_title, error or f"response {status}")
-            else:
-                # The SDK union lacks these terminals, so they arrive loosely typed
-                event_type: str = chunk.type
-                if event_type == "response.incomplete":
-                    raise _incomplete_error(entry_title, _field(chunk, "response"))
-                if event_type in ("response.cancelled", "error"):
-                    error = _field(_field(chunk, "error"), "message")
-                    raise _api_error(entry_title, error or event_type)
+                continue
+            # The SDK union lacks these terminals, so they arrive loosely typed
+            event_type: str = chunk.type
+            if event_type == "response.incomplete":
+                raise _incomplete_error(entry_title, _field(chunk, "response"))
+            if event_type in ("response.cancelled", "error"):
+                error = _field(_field(chunk, "error"), "message")
+                raise _api_error(entry_title, error or event_type)
+            yield chunk
     except PerplexityError as err:
         raise _api_error(entry_title, str(err)) from err
 
@@ -154,12 +235,49 @@ async def _transform_stream(
     stream: AsyncIterable[ResponseStreamChunk], entry_title: str
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform the Perplexity stream to delta content."""
-    first = True
-    async for delta in _async_iter_text_deltas(stream, entry_title):
-        if first:
-            yield {"role": "assistant"}
-            first = False
-        yield {"content": delta}
+    role_open = False
+    after_tool_call = False
+
+    async for chunk in _async_iter_events(stream, entry_title):
+        if chunk.type == "response.output_item.added":
+            if isinstance(chunk.item, FunctionCallOutputItem):
+                # Every call gets its own content so it can carry its own signature
+                yield {"role": "assistant"}
+                role_open = True
+                after_tool_call = True
+            elif isinstance(chunk.item, MessageOutputItem) and (
+                not role_open or after_tool_call
+            ):
+                # Consecutive message items must share one content, HA reads
+                # only the last one
+                yield {"role": "assistant"}
+                role_open = True
+                after_tool_call = False
+        elif chunk.type == "response.output_text.delta":
+            # The voice pipeline ignores text until a role has been announced
+            if not role_open:
+                yield {"role": "assistant"}
+                role_open = True
+            yield {"content": chunk.delta}
+        elif chunk.type == "response.output_item.done" and isinstance(
+            chunk.item, FunctionCallOutputItem
+        ):
+            if not role_open:
+                yield {"role": "assistant"}
+                role_open = True
+            yield {
+                "tool_calls": [
+                    llm.ToolInput(
+                        id=chunk.item.call_id,
+                        tool_name=chunk.item.name,
+                        tool_args=_decode_tool_arguments(
+                            chunk.item.arguments, entry_title
+                        ),
+                    )
+                ]
+            }
+            if chunk.item.thought_signature:
+                yield {"native": {chunk.item.call_id: chunk.item.thought_signature}}
 
 
 async def _async_prepare_files_for_prompt(
@@ -224,12 +342,6 @@ class PerplexityEntity(Entity):
         chat_log: conversation.ChatLog,
         structure_name: str | None = None,
         structure: probatio.Schema | None = None,
-        response_format: dict[str, Any] | None = None,
-        stream_transform: Callable[
-            [AsyncIterable[ResponseStreamChunk]],
-            AsyncGenerator[conversation.AssistantContentDeltaDict],
-        ]
-        | None = None,
     ) -> None:
         """Generate an answer for the chat log."""
         model_args: dict[str, Any] = {"preset": self.model, "stream": True}
@@ -248,11 +360,20 @@ class PerplexityEntity(Entity):
         instructions.append(WEB_SEARCH_ADDITIONAL_INSTRUCTION)
         model_args["instructions"] = "\n".join(instructions)
 
-        model_args["input"] = [
-            m
-            for content in chat_log.content
-            if (m := _convert_content_to_input_message(content))
-        ]
+        if chat_log.llm_api:
+            tools: list[dict[str, Any]] = []
+            for tool in chat_log.llm_api.tools:
+                if tool.name in RESERVED_TOOL_NAMES:
+                    LOGGER.warning(
+                        "Skipping tool %s, the name is reserved by the Perplexity API",
+                        tool.name,
+                    )
+                    continue
+                tools.append(_format_tool(tool, chat_log.llm_api.custom_serializer))
+            if tools:
+                model_args["tools"] = tools
+
+        model_args["input"] = _convert_content_to_input(chat_log.content)
 
         last_content = chat_log.content[-1]
 
@@ -280,27 +401,34 @@ class PerplexityEntity(Entity):
             model_args["response_format"] = _format_structured_output(
                 structure_name or "response", structure, chat_log.llm_api
             )
-        elif response_format:
-            model_args["response_format"] = response_format
 
         client: AsyncPerplexity = self.entry.runtime_data
 
-        try:
-            stream = await client.responses.create(**model_args)
-        except AuthenticationError as err:
-            self.entry.async_start_reauth(self.hass)
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="auth_error",
-                translation_placeholders={"entry": self.entry.title},
-            ) from err
-        except PerplexityError as err:
-            raise _api_error(self.entry.title, str(err)) from err
+        # To prevent infinite loops, we limit the number of iterations
+        for _iteration in range(MAX_TOOL_ITERATIONS):
+            try:
+                stream = await client.responses.create(**model_args)
+            except AuthenticationError as err:
+                self.entry.async_start_reauth(self.hass)
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="auth_error",
+                    translation_placeholders={"entry": self.entry.title},
+                ) from err
+            except PerplexityError as err:
+                raise _api_error(self.entry.title, str(err)) from err
 
-        transform = stream_transform or partial(
-            _transform_stream, entry_title=self.entry.title
-        )
-        async for _ in chat_log.async_add_delta_content_stream(
-            self.entity_id, transform(stream)
-        ):
-            pass
+            model_args["input"].extend(
+                _convert_content_to_input(
+                    [
+                        content
+                        async for content in chat_log.async_add_delta_content_stream(
+                            self.entity_id,
+                            _transform_stream(stream, self.entry.title),
+                        )
+                    ]
+                )
+            )
+
+            if not chat_log.unresponded_tool_results:
+                break
