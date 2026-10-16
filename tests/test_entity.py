@@ -326,7 +326,7 @@ _TURN_ON_INPUT = llm.ToolInput(
         ),
         (
             [*output_item_events(_TURN_ON), _chunk("response.completed")],
-            [{"role": "assistant"}, {"tool_calls": [_TURN_ON_INPUT]}],
+            [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}],
         ),
         (
             [
@@ -335,28 +335,27 @@ _TURN_ON_INPUT = llm.ToolInput(
                 _chunk("response.output_text.delta", delta="Done"),
             ],
             [
-                {"role": "assistant"},
-                {"tool_calls": [_TURN_ON_INPUT]},
+                {"role": "assistant", "tool_calls": [_TURN_ON_INPUT]},
                 {"role": "assistant"},
                 {"content": "Done"},
             ],
         ),
         (
             [output_item_events(_TURN_ON)[1]],
-            [{"role": "assistant"}, {"tool_calls": [_TURN_ON_INPUT]}],
+            [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}],
         ),
         (
             [*output_item_events(_SIGNED)],
             [
-                {"role": "assistant"},
                 {
+                    "role": "assistant",
                     "tool_calls": [
                         llm.ToolInput(
                             id="call_2", tool_name="llm__GetDateTime", tool_args={}
                         )
-                    ]
-                },
-                {"native": {"call_2": "c2ln"}},
+                    ],
+                    "native": {"call_2": "c2ln"},
+                }
             ],
         ),
     ],

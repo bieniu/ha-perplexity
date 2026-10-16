@@ -1,6 +1,7 @@
 """Tests for the Perplexity Conversation entity."""
 
 import copy
+import logging
 from collections.abc import AsyncGenerator, Callable
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -591,6 +592,7 @@ async def test_conversation_reserved_tool_name_skipped(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test a tool named like a Perplexity built-in tool is not sent."""
+    caplog.set_level(logging.DEBUG, logger="custom_components.perplexity")
     llm.async_register_api(hass, _TestAPI(hass=hass, id="test_api", name="Test"))
     await _setup_conversation_entry(
         hass, mock_perplexity_client, {CONF_LLM_HASS_API: ["test_api"]}

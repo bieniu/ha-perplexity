@@ -236,23 +236,14 @@ async def _transform_stream(
 ) -> AsyncGenerator[conversation.AssistantContentDeltaDict]:
     """Transform the Perplexity stream to delta content."""
     role_open = False
-    after_tool_call = False
 
     async for chunk in _async_iter_events(stream, entry_title):
         if chunk.type == "response.output_item.added":
-            if isinstance(chunk.item, FunctionCallOutputItem):
-                # Every call gets its own content so it can carry its own signature
-                yield {"role": "assistant"}
-                role_open = True
-                after_tool_call = True
-            elif isinstance(chunk.item, MessageOutputItem) and (
-                not role_open or after_tool_call
-            ):
+            if isinstance(chunk.item, MessageOutputItem) and not role_open:
                 # Consecutive message items must share one content, HA reads
                 # only the last one
                 yield {"role": "assistant"}
                 role_open = True
-                after_tool_call = False
         elif chunk.type == "response.output_text.delta":
             # The voice pipeline ignores text until a role has been announced
             if not role_open:
@@ -262,10 +253,9 @@ async def _transform_stream(
         elif chunk.type == "response.output_item.done" and isinstance(
             chunk.item, FunctionCallOutputItem
         ):
-            if not role_open:
-                yield {"role": "assistant"}
-                role_open = True
-            yield {
+            # One delta per call, so HA never sees two signatures in one content
+            delta: conversation.AssistantContentDeltaDict = {
+                "role": "assistant",
                 "tool_calls": [
                     llm.ToolInput(
                         id=chunk.item.call_id,
@@ -274,10 +264,12 @@ async def _transform_stream(
                             chunk.item.arguments, entry_title
                         ),
                     )
-                ]
+                ],
             }
             if chunk.item.thought_signature:
-                yield {"native": {chunk.item.call_id: chunk.item.thought_signature}}
+                delta["native"] = {chunk.item.call_id: chunk.item.thought_signature}
+            yield delta
+            role_open = False
 
 
 async def _async_prepare_files_for_prompt(
@@ -364,7 +356,7 @@ class PerplexityEntity(Entity):
             tools: list[dict[str, Any]] = []
             for tool in chat_log.llm_api.tools:
                 if tool.name in RESERVED_TOOL_NAMES:
-                    LOGGER.warning(
+                    LOGGER.debug(
                         "Skipping tool %s, the name is reserved by the Perplexity API",
                         tool.name,
                     )
