@@ -13,7 +13,12 @@ from homeassistant.config_entries import (
     ConfigSubentryFlow,
     SubentryFlowResult,
 )
-from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_LLM_HASS_API,
+    CONF_MODEL,
+    CONF_PROMPT,
+)
 from homeassistant.core import callback
 from homeassistant.helpers import llm
 from homeassistant.helpers.httpx_client import get_async_client
@@ -29,7 +34,6 @@ from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 
 from .const import (
     CONF_INCLUDE_HOME_LOCATION,
-    CONF_PROMPT,
     CONF_REASONING_EFFORT,
     DOMAIN,
     INTEGRATION_HEADERS,
@@ -127,39 +131,33 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reauthorization flow."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            errors = await self._validate_input(user_input)
-            if not errors:
-                return self.async_update_and_abort(
-                    self._get_reauth_entry(),
-                    data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
-                )
-
-        return self.async_show_form(
-            step_id="reauth_confirm",
-            data_schema=probatio.Schema({probatio.Required(CONF_API_KEY): str}),
-            errors=errors,
-            description_placeholders=DESCRIPTION_PLACEHOLDERS,
+        return await self._async_update_api_key(
+            "reauth_confirm", self._get_reauth_entry(), user_input
         )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration flow."""
+        return await self._async_update_api_key(
+            "reconfigure", self._get_reconfigure_entry(), user_input
+        )
+
+    async def _async_update_api_key(
+        self, step_id: str, entry: ConfigEntry, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """Validate a new API key and update the entry with it."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             errors = await self._validate_input(user_input)
             if not errors:
                 return self.async_update_and_abort(
-                    self._get_reconfigure_entry(),
-                    data_updates={CONF_API_KEY: user_input[CONF_API_KEY]},
+                    entry, data_updates={CONF_API_KEY: user_input[CONF_API_KEY]}
                 )
 
         return self.async_show_form(
-            step_id="reconfigure",
+            step_id=step_id,
             data_schema=probatio.Schema({probatio.Required(CONF_API_KEY): str}),
             errors=errors,
             description_placeholders=DESCRIPTION_PLACEHOLDERS,

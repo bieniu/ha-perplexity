@@ -2,7 +2,7 @@
 
 import logging
 
-from homeassistant.const import CONF_LLM_HASS_API
+from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT
 from homeassistant.helpers import llm
 
 DOMAIN = "perplexity"
@@ -10,7 +10,6 @@ LOGGER = logging.getLogger(__package__)
 
 CONF_INCLUDE_HOME_LOCATION = "include_home_location"
 CONF_REASONING_EFFORT = "reasoning_effort"
-CONF_PROMPT = "prompt"
 
 RECOMMENDED_CHAT_MODEL = "fast"
 MIN_MAX_TOKENS = 16

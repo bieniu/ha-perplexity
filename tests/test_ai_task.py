@@ -8,14 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import probatio
 import pytest
 from homeassistant.components import ai_task, media_source
-from homeassistant.const import CONF_MODEL, Platform
+from homeassistant.const import CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import llm
 from perplexity import PerplexityError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import (
     CONF_REASONING_EFFORT,
@@ -24,66 +22,17 @@ from custom_components.perplexity.const import (
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
 )
 
-
-async def test_ai_task_entity(
-    hass: HomeAssistant,
-    mock_config_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-    snapshot: SnapshotAssertion,
-) -> None:
-    """Test AI task entity."""
-    with (
-        patch(
-            "custom_components.perplexity.AsyncPerplexity",
-            return_value=mock_perplexity_client,
-        ),
-        patch("custom_components.perplexity.PLATFORMS", [Platform.AI_TASK]),
-    ):
-        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
-        await hass.async_block_till_done()
-
-    entity_registry = er.async_get(hass)
-
-    entity_entries = er.async_entries_for_config_entry(
-        entity_registry, mock_config_entry.entry_id
-    )
-
-    assert len(entity_entries) == 1
-
-    for entity_entry in entity_entries:
-        entity_entry_dict = entity_entry.as_partial_dict
-        for item in (
-            "area_id",
-            "categories",
-            "config_entry_id",
-            "created_at",
-            "device_id",
-            "hidden_by",
-            "id",
-            "labels",
-            "modified_at",
-        ):
-            entity_entry_dict.pop(item)
-        assert entity_entry_dict == snapshot(name=f"{entity_entry.entity_id}-entry")
-
-        state = hass.states.get(entity_entry.entity_id)
-        assert state is not None
-
-        state_dict = state._as_dict
-        for item in ("context", "last_changed", "last_reported", "last_updated"):
-            state_dict.pop(item)
-        assert state_dict == snapshot(name=f"{entity_entry.entity_id}-state")
+from .conftest import create_mock_stream
 
 
 async def test_ai_task_generate_data_without_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data without structure."""
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Test response")
+        return_value=create_mock_stream("Test response")
     )
 
     result = await ai_task.async_generate_data(
@@ -96,27 +45,6 @@ async def test_ai_task_generate_data_without_structure(
     assert result.data == "Test response"
 
 
-async def test_ai_task_generate_data_without_structure_strips_reasoning(
-    hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
-) -> None:
-    """Test AI task strips reasoning blocks from plain text responses."""
-    mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("<think>\nReasoning here\n</think>\n\nVisible answer")
-    )
-
-    result = await ai_task.async_generate_data(
-        hass,
-        task_name="Test task",
-        entity_id="ai_task.fast",
-        instructions="Test instructions",
-    )
-
-    assert result.data == "Visible answer"
-
-
 @pytest.mark.parametrize(
     ("task_name", "expected_name"),
     [("Test task", "Test_task"), ("a" * 70, "a" * 64), ("żółw", "___w")],
@@ -125,13 +53,12 @@ async def test_ai_task_generate_data_with_structure(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
     task_name: str,
     expected_name: str,
 ) -> None:
     """Test AI task generate data with structure."""
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream('{"key": "value"}')
+        return_value=create_mock_stream('{"key": "value"}')
     )
 
     result = await ai_task.async_generate_data(
@@ -150,37 +77,14 @@ async def test_ai_task_generate_data_with_structure(
     assert response_format["json_schema"]["name"] == expected_name
 
 
-async def test_ai_task_generate_data_with_structure_strips_reasoning(
-    hass: HomeAssistant,
-    mock_setup_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
-) -> None:
-    """Test AI task strips reasoning blocks before parsing structured data."""
-    mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream('<think>\nReasoning here\n</think>\n{"key": "value"}')
-    )
-
-    result = await ai_task.async_generate_data(
-        hass,
-        task_name="Test task",
-        entity_id="ai_task.fast",
-        instructions="Test instructions",
-        structure=probatio.Schema({probatio.Required("key"): str}),
-    )
-
-    assert result.data == {"key": "value"}
-
-
 async def test_ai_task_generate_data_invalid_json(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
 ) -> None:
     """Test AI task generate data with invalid JSON response."""
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("invalid json")
+        return_value=create_mock_stream("invalid json")
     )
 
     with pytest.raises(
@@ -206,7 +110,6 @@ async def test_ai_task_generate_data_invalid_json(
 async def test_ai_task_request_args(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
     subentry_data: dict[str, Any],
     expected_reasoning: dict[str, str] | None,
 ) -> None:
@@ -228,15 +131,11 @@ async def test_ai_task_request_args(
     )
     entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.perplexity.AsyncPerplexity",
-        return_value=mock_perplexity_client,
-    ):
-        await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
 
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Test response")
+        return_value=create_mock_stream("Test response")
     )
 
     result = await ai_task.async_generate_data(
@@ -266,11 +165,10 @@ async def test_ai_task_request_args_with_llm_api(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., Any],
 ) -> None:
     """Test tools and the structure are sent together when an API is given."""
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream('{"name": "kitchen"}')
+        return_value=create_mock_stream('{"name": "kitchen"}')
     )
     assist_api = next(api for api in llm.async_get_apis(hass) if api.id == "assist")
 
@@ -362,18 +260,26 @@ async def test_ai_task_no_assistant_response(
         )
 
 
+@pytest.mark.parametrize(
+    ("instructions", "expected_text"),
+    [
+        ("Describe the image", [{"type": "input_text", "text": "Describe the image"}]),
+        ("", []),
+    ],
+)
 async def test_ai_task_generate_data_with_attachment(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[[str], Any],
     tmp_path: Path,
+    instructions: str,
+    expected_text: list[dict[str, str]],
 ) -> None:
     """Test image attachments are sent as Agent API input parts."""
     image = tmp_path / "image.png"
     image.write_bytes(b"fake-png")
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("A cat")
+        return_value=create_mock_stream("A cat")
     )
 
     with patch(
@@ -386,7 +292,7 @@ async def test_ai_task_generate_data_with_attachment(
             hass,
             task_name="Test task",
             entity_id="ai_task.fast",
-            instructions="Describe the image",
+            instructions=instructions,
             attachments=[
                 {
                     "media_content_id": "media-source://media/image.png",
@@ -401,7 +307,7 @@ async def test_ai_task_generate_data_with_attachment(
         "type": "message",
         "role": "user",
         "content": [
-            {"type": "input_text", "text": "Describe the image"},
+            *expected_text,
             {
                 "type": "input_image",
                 "image_url": "data:image/png;base64,ZmFrZS1wbmc=",

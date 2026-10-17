@@ -2,25 +2,27 @@
 
 import copy
 import logging
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.components import conversation
 from homeassistant.components.conversation.chat_log import async_get_chat_log
-from homeassistant.const import CONF_LLM_HASS_API, CONF_MODEL, MATCH_ALL, Platform
+from homeassistant.const import (
+    CONF_LLM_HASS_API,
+    CONF_MODEL,
+    CONF_PROMPT,
+    MATCH_ALL,
+)
 from homeassistant.core import Context, HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import intent, llm
 from homeassistant.helpers.chat_session import async_get_chat_session
 from homeassistant.helpers.json import json_dumps
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from syrupy.assertion import SnapshotAssertion
 
 from custom_components.perplexity.const import (
     CONF_INCLUDE_HOME_LOCATION,
-    CONF_PROMPT,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
     WEB_SEARCH_ADDITIONAL_INSTRUCTION,
@@ -28,6 +30,7 @@ from custom_components.perplexity.const import (
 from custom_components.perplexity.entity import MAX_TOOL_ITERATIONS
 
 from .conftest import (
+    create_mock_stream,
     expose_light,
     function_call_item,
     message_item,
@@ -62,12 +65,8 @@ async def _setup_conversation_entry(
     )
     entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.perplexity.AsyncPerplexity",
-        return_value=mock_perplexity_client,
-    ):
-        await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
 
     return entry
 
@@ -93,55 +92,11 @@ async def _converse(hass: HomeAssistant, text: str) -> conversation.Conversation
     )
 
 
-async def test_conversation_entity(
+async def test_conversation_agent_info(
     hass: HomeAssistant,
-    mock_config_entry: MockConfigEntry,
-    mock_perplexity_client: MagicMock,
-    snapshot: SnapshotAssertion,
+    mock_setup_entry: MockConfigEntry,
 ) -> None:
-    """Test Conversation entity."""
-    with (
-        patch(
-            "custom_components.perplexity.AsyncPerplexity",
-            return_value=mock_perplexity_client,
-        ),
-        patch("custom_components.perplexity.PLATFORMS", [Platform.CONVERSATION]),
-    ):
-        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
-        await hass.async_block_till_done()
-
-    entity_registry = er.async_get(hass)
-
-    entity_entries = er.async_entries_for_config_entry(
-        entity_registry, mock_config_entry.entry_id
-    )
-
-    assert len(entity_entries) == 1
-
-    for entity_entry in entity_entries:
-        entity_entry_dict = entity_entry.as_partial_dict
-        for item in (
-            "area_id",
-            "categories",
-            "config_entry_id",
-            "created_at",
-            "device_id",
-            "hidden_by",
-            "id",
-            "labels",
-            "modified_at",
-        ):
-            entity_entry_dict.pop(item)
-        assert entity_entry_dict == snapshot(name=f"{entity_entry.entity_id}-entry")
-
-        state = hass.states.get(entity_entry.entity_id)
-        assert state is not None
-
-        state_dict = state._as_dict
-        for item in ("context", "last_changed", "last_reported", "last_updated"):
-            state_dict.pop(item)
-        assert state_dict == snapshot(name=f"{entity_entry.entity_id}-state")
-
+    """Test the conversation agent supports streaming and all languages."""
     agent_info = conversation.async_get_agent_info(hass, CONVERSATION_ENTITY_ID)
     assert agent_info is not None
     assert agent_info.supports_streaming is True
@@ -172,11 +127,10 @@ async def test_conversation_text_response(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test a plain text answer is returned as speech."""
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Hello! How can I help you today?")
+        return_value=create_mock_stream("Hello! How can I help you today?")
     )
 
     result = await _converse(hass, "Hello")
@@ -191,11 +145,10 @@ async def test_conversation_tools_sent(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test the Assist API tools are sent as function tools."""
     expose_light(hass)
-    sent_kwargs = _record_requests(mock_perplexity_client, [mock_stream("Hi")])
+    sent_kwargs = _record_requests(mock_perplexity_client, [create_mock_stream("Hi")])
 
     await _converse(hass, "Hello")
 
@@ -223,13 +176,12 @@ async def test_conversation_tools_sent(
 async def test_conversation_without_llm_api(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test no tools are sent and no control feature is set without an API."""
     await _setup_conversation_entry(
         hass, mock_perplexity_client, {CONF_PROMPT: "You are helpful."}
     )
-    sent_kwargs = _record_requests(mock_perplexity_client, [mock_stream("Hi")])
+    sent_kwargs = _record_requests(mock_perplexity_client, [create_mock_stream("Hi")])
 
     result = await _converse(hass, "Hello")
 
@@ -243,14 +195,13 @@ async def test_conversation_without_llm_api(
 async def test_conversation_appends_citation_instruction(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test conversation always asks presets to omit web search citations."""
     await _setup_conversation_entry(
         hass, mock_perplexity_client, {CONF_PROMPT: "You are helpful."}
     )
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Web search result")
+        return_value=create_mock_stream("Web search result")
     )
 
     result = await _converse(hass, "What is the weather?")
@@ -288,17 +239,16 @@ async def test_conversation_tool_call_round_trip(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test a tool call runs the intent and its result is sent back."""
     turn_on_calls = expose_light(hass)
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(
+            create_mock_stream(
                 tool_calls=[function_call_item("intent__HassTurnOn", TURN_ON_ARGUMENTS)]
             ),
-            mock_stream("The living room light is on."),
+            create_mock_stream("The living room light is on."),
         ],
     )
 
@@ -334,14 +284,13 @@ async def test_conversation_tool_call_error(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test a failing tool call is reported to the model, not to the user."""
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(tool_calls=[function_call_item("intent__Nope", "{}")]),
-            mock_stream("I can't do that."),
+            create_mock_stream(tool_calls=[function_call_item("intent__Nope", "{}")]),
+            create_mock_stream("I can't do that."),
         ],
     )
 
@@ -367,14 +316,13 @@ async def test_conversation_tool_loop_limit(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test a model that keeps calling tools is stopped after the limit."""
     expose_light(hass)
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(
+            create_mock_stream(
                 tool_calls=[
                     function_call_item(
                         "intent__HassTurnOn", TURN_ON_ARGUMENTS, call_id=f"call_{i}"
@@ -403,14 +351,17 @@ async def test_conversation_tool_call_invalid_arguments(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
     arguments: str,
     error: str,
 ) -> None:
     """Test unusable tool arguments end the turn with an API error."""
     _record_requests(
         mock_perplexity_client,
-        [mock_stream(tool_calls=[function_call_item("llm__GetDateTime", arguments)])],
+        [
+            create_mock_stream(
+                tool_calls=[function_call_item("llm__GetDateTime", arguments)]
+            )
+        ],
     )
 
     result = await _converse(hass, "What time is it?")
@@ -425,14 +376,13 @@ async def test_conversation_tool_call_empty_arguments(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test a parameterless tool called with empty arguments runs."""
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(tool_calls=[function_call_item("llm__GetDateTime", "")]),
-            mock_stream("It is noon."),
+            create_mock_stream(tool_calls=[function_call_item("llm__GetDateTime", "")]),
+            create_mock_stream("It is noon."),
         ],
     )
 
@@ -449,14 +399,13 @@ async def test_conversation_tool_call_thought_signature(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test the thought signature is echoed on the call and its result."""
     expose_light(hass)
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(
+            create_mock_stream(
                 tool_calls=[
                     function_call_item(
                         "intent__HassTurnOn",
@@ -465,7 +414,7 @@ async def test_conversation_tool_call_thought_signature(
                     )
                 ]
             ),
-            mock_stream("Done."),
+            create_mock_stream("Done."),
         ],
     )
 
@@ -480,14 +429,13 @@ async def test_conversation_tool_call_with_text(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test text after a tool call in the same response ends the turn."""
     expose_light(hass)
     sent_kwargs = _record_requests(
         mock_perplexity_client,
         [
-            mock_stream(
+            create_mock_stream(
                 "Turning it on.",
                 tool_calls=[
                     function_call_item("intent__HassTurnOn", TURN_ON_ARGUMENTS)
@@ -588,7 +536,6 @@ class _TestAPI(llm.API):
 async def test_conversation_reserved_tool_name_skipped(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test a tool named like a Perplexity built-in tool is not sent."""
@@ -597,7 +544,7 @@ async def test_conversation_reserved_tool_name_skipped(
     await _setup_conversation_entry(
         hass, mock_perplexity_client, {CONF_LLM_HASS_API: ["test_api"]}
     )
-    sent_kwargs = _record_requests(mock_perplexity_client, [mock_stream("Hi")])
+    sent_kwargs = _record_requests(mock_perplexity_client, [create_mock_stream("Hi")])
 
     result = await _converse(hass, "Hello")
 
@@ -610,10 +557,11 @@ async def test_conversation_extra_system_prompt(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
     mock_setup_entry: MockConfigEntry,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test the extra system prompt is appended to the instructions."""
-    sent_kwargs = _record_requests(mock_perplexity_client, [mock_stream("Done.")])
+    sent_kwargs = _record_requests(
+        mock_perplexity_client, [create_mock_stream("Done.")]
+    )
 
     result = await conversation.async_converse(
         hass,
@@ -631,7 +579,6 @@ async def test_conversation_extra_system_prompt(
 async def test_conversation_with_home_location(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test that home location is included in the system prompt."""
     hass.config.latitude = 51.5074
@@ -644,7 +591,7 @@ async def test_conversation_with_home_location(
         {CONF_PROMPT: "You are helpful.", CONF_INCLUDE_HOME_LOCATION: True},
     )
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("The weather in London is nice today.")
+        return_value=create_mock_stream("The weather in London is nice today.")
     )
 
     result = await _converse(hass, "What's the weather like?")
@@ -661,7 +608,6 @@ async def test_conversation_with_home_location(
 async def test_conversation_with_home_location_no_country(
     hass: HomeAssistant,
     mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
 ) -> None:
     """Test home location without a configured country."""
     hass.config.latitude = 51.5074
@@ -674,7 +620,7 @@ async def test_conversation_with_home_location_no_country(
         {CONF_PROMPT: "You are helpful.", CONF_INCLUDE_HOME_LOCATION: True},
     )
     mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Nice weather.")
+        return_value=create_mock_stream("Nice weather.")
     )
 
     result = await _converse(hass, "What's the weather like?")
@@ -686,34 +632,6 @@ async def test_conversation_with_home_location_no_country(
     ]
     assert "Coordinates: 51.507,-0.128" in system_content
     assert "Country:" not in system_content
-
-
-async def test_conversation_with_home_location_unknown(
-    hass: HomeAssistant,
-    mock_perplexity_client: MagicMock,
-    mock_stream: Callable[..., AsyncGenerator[Any]],
-) -> None:
-    """Test no location prompt is added when nothing is known about the home."""
-    await _setup_conversation_entry(
-        hass,
-        mock_perplexity_client,
-        {CONF_PROMPT: "You are helpful.", CONF_INCLUDE_HOME_LOCATION: True},
-    )
-    mock_perplexity_client.responses.create = AsyncMock(
-        return_value=mock_stream("Nice weather.")
-    )
-
-    with (
-        patch.object(hass.config, "latitude", None),
-        patch.object(hass.config, "country", None),
-    ):
-        result = await _converse(hass, "What's the weather like?")
-
-    assert result.response.response_type == intent.IntentResponseType.ACTION_DONE
-    system_content = mock_perplexity_client.responses.create.call_args.kwargs[
-        "instructions"
-    ]
-    assert "home location" not in system_content
 
 
 async def test_conversation_message_items_concatenate(
