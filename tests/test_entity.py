@@ -14,17 +14,22 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from perplexity import AuthenticationError, PerplexityError
+from perplexity.generated.api import FunctionCallOutputItemOutput
+from perplexity.types.function_call_output_item import FunctionCallOutputItem
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.perplexity.const import DOMAIN
 from custom_components.perplexity.entity import (
     _adjust_schema,
-    _async_iter_text_deltas,
+    _async_iter_events,
     _async_prepare_files_for_prompt,
-    _convert_content_to_input_message,
+    _convert_content_to_input,
     _format_structured_output,
+    _format_tool,
     _transform_stream,
 )
+
+from .conftest import function_call_item, message_item, output_item_events
 
 
 def test_adjust_schema_object_with_properties() -> None:
@@ -139,44 +144,125 @@ def test_format_structured_output_with_llm_api() -> None:
     assert result["json_schema"]["name"] == "test_name"
 
 
-@pytest.mark.parametrize(
-    ("content", "expected"),
-    [
-        (conversation.SystemContent(content="You are a helpful assistant."), None),
-        (
-            conversation.UserContent(content="Hello!"),
-            {"type": "message", "role": "user", "content": "Hello!"},
+def test_convert_content_to_input() -> None:
+    """Test chat log content becomes Agent API input items in order."""
+    content = [
+        conversation.SystemContent(content="You are a helpful assistant."),
+        conversation.UserContent(content="Turn on the light"),
+        conversation.AssistantContent(
+            agent_id="test_agent",
+            content="Sure.",
+            tool_calls=[
+                llm.ToolInput(
+                    id="call_1",
+                    tool_name="intent__HassTurnOn",
+                    tool_args={"name": "light"},
+                )
+            ],
+            native={"call_1": "c2ln"},
         ),
-        (
-            conversation.AssistantContent(
-                agent_id="test_agent", content="Hello! How can I help?"
-            ),
-            {
-                "type": "message",
-                "role": "assistant",
-                "content": "Hello! How can I help?",
-            },
+        conversation.ToolResultContent(
+            agent_id="test_agent",
+            tool_call_id="call_1",
+            tool_name="intent__HassTurnOn",
+            result=llm.ToolResult(data={"speech": {}}),
         ),
-        (conversation.AssistantContent(agent_id="test_agent", content=None), None),
-        (
-            conversation.ToolResultContent(
-                agent_id="test_agent",
-                tool_call_id="call_123",
-                tool_name="HassTurnOn",
-                result=llm.ToolResult(
-                    data={"speech": {"plain": {"speech": "Done", "extra_data": None}}}
-                ),
-            ),
-            None,
+        conversation.AssistantContent(agent_id="test_agent", content=None),
+        conversation.AssistantContent(agent_id="test_agent", content="Done"),
+    ]
+
+    assert _convert_content_to_input(content) == [
+        {"type": "message", "role": "user", "content": "Turn on the light"},
+        {"type": "message", "role": "assistant", "content": "Sure."},
+        {
+            "type": "function_call",
+            "call_id": "call_1",
+            "name": "intent__HassTurnOn",
+            "arguments": '{"name":"light"}',
+            "thought_signature": "c2ln",
+        },
+        {
+            "type": "function_call_output",
+            "call_id": "call_1",
+            "name": "intent__HassTurnOn",
+            "output": '{"data":{"speech":{}},"error":false}',
+            "thought_signature": "c2ln",
+        },
+        {"type": "message", "role": "assistant", "content": "Done"},
+    ]
+
+
+def test_convert_content_to_input_foreign_native() -> None:
+    """Test native data of other agents is not treated as signatures."""
+    content = [
+        conversation.AssistantContent(
+            agent_id="other_agent",
+            content=None,
+            tool_calls=[llm.ToolInput(id="call_1", tool_name="x", tool_args={})],
+            native=object(),
         ),
-        (MagicMock(role="unknown", content="test"), None),
-    ],
-)
-def test_convert_content_to_input_message(
-    content: conversation.Content, expected: dict[str, str] | None
-) -> None:
-    """Test converting chat log content to Agent API input messages."""
-    assert _convert_content_to_input_message(content) == expected
+        conversation.ToolResultContent(
+            agent_id="other_agent",
+            tool_call_id="call_1",
+            tool_name="x",
+            result=llm.ToolResult(data={}, error=True),
+        ),
+    ]
+
+    assert _convert_content_to_input(content) == [
+        {"type": "function_call", "call_id": "call_1", "name": "x", "arguments": "{}"},
+        {
+            "type": "function_call_output",
+            "call_id": "call_1",
+            "name": "x",
+            "output": '{"data":{},"error":true}',
+        },
+    ]
+
+
+class _TimerTool(llm.Tool):
+    """Tool with a top-level combinator in its schema, like HassStartTimer."""
+
+    name = "intent__HassStartTimer"
+    description = "Starts a new timer"
+    parameters = probatio.Schema(
+        {
+            probatio.Required(probatio.Any("hours", "minutes")): int,
+            probatio.Optional("name"): str,
+            probatio.Optional("nested"): probatio.Any(str, int),
+        }
+    )
+
+    async def async_call(
+        self,
+        hass: HomeAssistant,
+        tool_input: llm.ToolInput,
+        llm_context: llm.LLMContext,
+    ) -> llm.ToolResult:
+        """Never called."""
+        return llm.ToolResult(data={})
+
+
+def test_format_tool() -> None:
+    """Test a tool schema keeps nested but drops top-level combinators."""
+    result = _format_tool(_TimerTool(), llm.selector_serializer)
+
+    assert result["type"] == "function"
+    assert result["name"] == "intent__HassStartTimer"
+    assert result["description"] == "Starts a new timer"
+    assert result["strict"] is False
+    parameters = result["parameters"]
+    assert "anyOf" not in parameters
+    assert set(parameters["properties"]) == {"hours", "minutes", "name", "nested"}
+    assert "anyOf" in parameters["properties"]["nested"]
+
+
+def test_format_tool_without_description() -> None:
+    """Test the description is omitted when the tool has none."""
+    tool = _TimerTool()
+    tool.description = None
+
+    assert "description" not in _format_tool(tool, None)
 
 
 def _chunk(chunk_type: str, delta: str | None = None) -> MagicMock:
@@ -192,22 +278,31 @@ async def _as_stream(chunks: Sequence[Any]) -> AsyncGenerator[Any]:
         yield chunk
 
 
-async def test_async_iter_text_deltas_ignores_other_events() -> None:
-    """Test only text delta events are yielded."""
+async def test_async_iter_events_skips_terminal_events() -> None:
+    """Test terminal events are consumed and the rest is passed through."""
     stream = _as_stream(
         [
             _chunk("response.created"),
             _chunk("response.output_text.delta", delta="Hello"),
             _chunk("response.reasoning.started"),
-            _chunk("response.output_text.delta", delta=" world"),
             _chunk("response.completed"),
         ]
     )
 
-    assert [d async for d in _async_iter_text_deltas(stream, "Perplexity")] == [
-        "Hello",
-        " world",
+    assert [c.type async for c in _async_iter_events(stream, "Perplexity")] == [
+        "response.created",
+        "response.output_text.delta",
+        "response.reasoning.started",
     ]
+
+
+_TURN_ON = function_call_item("intent__HassTurnOn", '{"name":"light"}')
+_SIGNED = function_call_item(
+    "llm__GetDateTime", "", call_id="call_2", thought_signature="c2ln"
+)
+_TURN_ON_INPUT = llm.ToolInput(
+    id="call_1", tool_name="intent__HassTurnOn", tool_args={"name": "light"}
+)
 
 
 @pytest.mark.parametrize(
@@ -222,15 +317,127 @@ async def test_async_iter_text_deltas_ignores_other_events() -> None:
             [{"role": "assistant"}, {"content": "Hi"}, {"content": "!"}],
         ),
         ([_chunk("response.created"), _chunk("response.completed")], []),
+        (
+            [
+                output_item_events(message_item())[0],
+                _chunk("response.output_text.delta", delta="Hi"),
+                output_item_events(message_item())[0],
+                _chunk("response.output_text.delta", delta="!"),
+            ],
+            [{"role": "assistant"}, {"content": "Hi"}, {"content": "!"}],
+        ),
+        (
+            [*output_item_events(_TURN_ON), _chunk("response.completed")],
+            [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}],
+        ),
+        (
+            [
+                *output_item_events(_TURN_ON),
+                output_item_events(message_item())[0],
+                _chunk("response.output_text.delta", delta="Done"),
+            ],
+            [
+                {"role": "assistant", "tool_calls": [_TURN_ON_INPUT]},
+                {"role": "assistant"},
+                {"content": "Done"},
+            ],
+        ),
+        (
+            [output_item_events(_TURN_ON)[1]],
+            [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}],
+        ),
+        (
+            [*output_item_events(_SIGNED)],
+            [
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        llm.ToolInput(
+                            id="call_2", tool_name="llm__GetDateTime", tool_args={}
+                        )
+                    ],
+                    "native": {"call_2": "c2ln"},
+                }
+            ],
+        ),
     ],
 )
 async def test_transform_stream(
-    chunks: list[MagicMock], expected: list[dict[str, str]]
+    chunks: list[Any], expected: list[dict[str, Any]]
 ) -> None:
-    """Test the assistant role is only emitted once text arrives."""
+    """Test output items and text deltas become chat log deltas."""
     assert [
         d async for d in _transform_stream(_as_stream(chunks), "Perplexity")
     ] == expected
+
+
+_TURN_ON_ITEM = {
+    "id": "fc_call_1",
+    "call_id": "call_1",
+    "name": "intent__HassTurnOn",
+    "arguments": '{"name":"light"}',
+    "status": "completed",
+    "type": "function_call",
+}
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        FunctionCallOutputItem(**_TURN_ON_ITEM),
+        FunctionCallOutputItemOutput(**_TURN_ON_ITEM),
+        _TURN_ON_ITEM,
+    ],
+)
+async def test_transform_stream_item_class(item: object) -> None:
+    """Test tool calls are kept whichever SDK class or raw dict the stream builds."""
+    stream = _as_stream([SimpleNamespace(type="response.output_item.done", item=item)])
+
+    deltas = [d async for d in _transform_stream(stream, "Perplexity")]
+
+    assert deltas == [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}]
+
+
+async def test_transform_stream_dict_message_item() -> None:
+    """Test a message item the SDK could not validate still opens the role."""
+    stream = _as_stream(
+        [
+            SimpleNamespace(
+                type="response.output_item.added",
+                item={
+                    "content": None,
+                    "id": "msg_1",
+                    "role": "assistant",
+                    "status": "completed",
+                    "type": "message",
+                },
+            ),
+            _chunk("response.output_text.delta", delta="Włączone."),
+        ]
+    )
+
+    deltas = [d async for d in _transform_stream(stream, "Perplexity")]
+
+    assert deltas == [{"role": "assistant"}, {"content": "Włączone."}]
+
+
+@pytest.mark.parametrize(
+    ("arguments", "error"),
+    [("{not json", "invalid tool arguments"), ("[]", "not an object")],
+)
+async def test_transform_stream_invalid_arguments(arguments: str, error: str) -> None:
+    """Test unusable tool arguments raise an API error."""
+    stream = _as_stream(
+        output_item_events(function_call_item("llm__GetDateTime", arguments))
+    )
+
+    with pytest.raises(HomeAssistantError) as exc_info:
+        _ = [d async for d in _transform_stream(stream, "Perplexity")]
+
+    assert exc_info.value.translation_key == "api_error"
+    placeholders = exc_info.value.translation_placeholders
+    assert placeholders is not None
+    assert error in placeholders["error"]
 
 
 async def test_async_prepare_files_for_prompt_file_not_exists(
@@ -346,6 +553,33 @@ async def test_ai_task_authentication_error(
     assert "context" in flow
     assert flow["context"].get("source") == SOURCE_REAUTH
     assert flow["context"].get("entry_id") == mock_setup_entry.entry_id
+
+
+async def test_ai_task_requires_action_status(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+) -> None:
+    """Test a response completed with the requires_action status is accepted."""
+    stream = _as_stream(
+        [
+            _chunk("response.output_text.delta", delta="done"),
+            SimpleNamespace(
+                type="response.completed",
+                response=SimpleNamespace(status="requires_action", error=None),
+            ),
+        ]
+    )
+    mock_perplexity_client.responses.create = AsyncMock(return_value=stream)
+
+    result = await ai_task.async_generate_data(
+        hass,
+        task_name="Test task",
+        entity_id="ai_task.fast",
+        instructions="Test instructions",
+    )
+
+    assert result.data == "done"
 
 
 @pytest.mark.parametrize(
