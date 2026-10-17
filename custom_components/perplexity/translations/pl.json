@@ -52,10 +52,10 @@
             "step": {
                 "user": {
                     "data": {
-                        "model": "Preset"
+                        "model": "Profil"
                     },
                     "data_description": {
-                        "model": "Preset Perplexity, u\u017cywany na potrzeby zadania AI."
+                        "model": "Profil Perplexity, u\u017cywany na potrzeby zadania AI. Opis profili znajdziesz na {presets_url}"
                     },
                     "description": "Skonfiguruj nowe zadanie AI."
                 },
@@ -64,7 +64,7 @@
                         "reasoning_effort": "Poziom rozumowania"
                     },
                     "data_description": {
-                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie. Pozostaw puste, aby u\u017cy\u0107 domy\u015blnego ustawienia presetu"
+                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie. Pozostaw puste, aby u\u017cy\u0107 domy\u015blnego ustawienia profilu"
                     },
                     "description": "Skonfiguruj opcje zadania AI"
                 }
@@ -84,15 +84,15 @@
                     "data": {
                         "include_home_location": "Uwzgl\u0119dnij lokalizacj\u0119 domu",
                         "llm_hass_api": "Kontroluj Home Assistant",
-                        "model": "Preset",
+                        "model": "Profil",
                         "prompt": "Instrukcje",
                         "reasoning_effort": "Poziom rozumowania"
                     },
                     "data_description": {
                         "include_home_location": "Zazwala na przekazywanie LLM-owi informacji o lokaliacji domu.",
-                        "model": "Preset Perplexity, u\u017cywany na potrzeby agenta konwersacji.",
+                        "model": "Profil Perplexity, u\u017cywany na potrzeby agenta konwersacji. Opis profili znajdziesz na {presets_url}",
                         "prompt": "Poinstruuj LLM jak powinien reagowa\u0107. Mo\u017ce to by\u0107 szablon.",
-                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie. Pozostaw puste, aby u\u017cy\u0107 domy\u015blnego ustawienia presetu"
+                        "reasoning_effort": "Kontroluje ile wysi\u0142ku model wk\u0142ada w rozumowanie. Pozostaw puste, aby u\u017cy\u0107 domy\u015blnego ustawienia profilu"
                     },
                     "description": "Skonfiguruj agenta konwersacji"
                 }
@@ -123,6 +123,14 @@
         }
     },
     "selector": {
+        "model": {
+            "options": {
+                "fast": "szybki",
+                "low": "niski",
+                "medium": "\u015bredni",
+                "high": "wysoki"
+            }
+        },
         "reasoning_effort": {
             "options": {
                 "minimal": "minimalny",
