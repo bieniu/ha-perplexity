@@ -51,7 +51,7 @@ Perplexity integration supports:
 
 - [Conversation](https://www.home-assistant.io/integrations/conversation/) platform (beta)
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
-- **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API)
+- **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API); see [what each preset does](https://docs.perplexity.ai/docs/agent-api/presets)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
 - control of entities exposed to Assist through Home Assistant's LLM tools (the **Assist** API), the same way the built-in AI integrations work
 - live entity state through the `GetLiveContext` tool, so the assistant can answer questions about your home

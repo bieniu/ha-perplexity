@@ -43,7 +43,10 @@ from .const import (
     SUBENTRY_TYPE_CONVERSATION,
 )
 
-DESCRIPTION_PLACEHOLDERS = {"api_key_url": "https://www.perplexity.ai/account/api/keys"}
+DESCRIPTION_PLACEHOLDERS = {
+    "api_key_url": "https://www.perplexity.ai/account/api/keys",
+    "presets_url": "https://docs.perplexity.ai/docs/agent-api/presets",
+}
 
 
 class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -183,16 +186,15 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
                     probatio.Required(CONF_MODEL, default=RECOMMENDED_CHAT_MODEL): (
                         SelectSelector(
                             SelectSelectorConfig(
-                                options=[
-                                    SelectOptionDict(value=model_id, label=name)
-                                    for model_id, name in PERPLEXITY_MODELS.items()
-                                ],
+                                options=list(PERPLEXITY_MODELS),
+                                translation_key=CONF_MODEL,
                                 mode=SelectSelectorMode.DROPDOWN,
                             ),
                         )
                     ),
                 }
             ),
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
 
     async def async_step_reconfigure(
@@ -296,10 +298,8 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
                 default=model,
             ): SelectSelector(
                 SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value=model_id, label=name)
-                        for model_id, name in PERPLEXITY_MODELS.items()
-                    ],
+                    options=list(PERPLEXITY_MODELS),
+                    translation_key=CONF_MODEL,
                     mode=SelectSelectorMode.DROPDOWN,
                 ),
             ),
@@ -340,4 +340,5 @@ class PerplexityConversationFlowHandler(ConfigSubentryFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=probatio.Schema(schema),
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )

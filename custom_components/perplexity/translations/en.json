@@ -64,7 +64,7 @@
                         "model": "Preset"
                     },
                     "data_description": {
-                        "model": "The Perplexity preset to use for the AI task"
+                        "model": "The Perplexity preset to use for the AI task. See what each preset does at {presets_url}"
                     },
                     "description": "Configure the new AI task"
                 }
@@ -90,7 +90,7 @@
                     },
                     "data_description": {
                         "include_home_location": "Allows to provide LLM with information about your home's location",
-                        "model": "The Perplexity preset to use for the conversation agent",
+                        "model": "The Perplexity preset to use for the conversation agent. See what each preset does at {presets_url}",
                         "prompt": "Instruct how the LLM should respond. This can be a template.",
                         "reasoning_effort": "Controls how much effort the model spends on reasoning. Leave empty to use the preset default"
                     },
@@ -123,6 +123,14 @@
         }
     },
     "selector": {
+        "model": {
+            "options": {
+                "fast": "Fast",
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High"
+            }
+        },
         "reasoning_effort": {
             "options": {
                 "minimal": "Minimal",
