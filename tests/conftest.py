@@ -13,11 +13,13 @@ from homeassistant.components.homeassistant.exposed_entities import (
 from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.setup import async_setup_component
-from perplexity.types.function_call_output_item import FunctionCallOutputItem
-from perplexity.types.output_item import MessageOutputItem
-from perplexity.types.response_stream_chunk import (
-    OutputItemAddedEvent,
-    OutputItemDoneEvent,
+
+# The SDK stream instantiates these, never the `perplexity.types.*` submodule classes
+from perplexity.generated.api import (
+    FunctionCallOutputItemOutput,
+    MessageOutputItemOutput,
+    OutputItemAddedEventOutput,
+    OutputItemDoneEventOutput,
 )
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -123,9 +125,9 @@ def function_call_item(
     arguments: str,
     call_id: str = "call_1",
     thought_signature: str | None = None,
-) -> FunctionCallOutputItem:
+) -> FunctionCallOutputItemOutput:
     """Return a function call output item as the Agent API streams it."""
-    return FunctionCallOutputItem(
+    return FunctionCallOutputItemOutput(
         id=f"fc_{call_id}",
         call_id=call_id,
         name=name,
@@ -136,25 +138,25 @@ def function_call_item(
     )
 
 
-def message_item() -> MessageOutputItem:
+def message_item() -> MessageOutputItemOutput:
     """Return an assistant message output item."""
-    return MessageOutputItem(
+    return MessageOutputItemOutput(
         id="msg_1", content=[], role="assistant", status="in_progress", type="message"
     )
 
 
 def output_item_events(
-    item: FunctionCallOutputItem | MessageOutputItem,
-) -> tuple[OutputItemAddedEvent, OutputItemDoneEvent]:
+    item: FunctionCallOutputItemOutput | MessageOutputItemOutput,
+) -> tuple[OutputItemAddedEventOutput, OutputItemDoneEventOutput]:
     """Return the added and done events for an output item."""
     return (
-        OutputItemAddedEvent(
+        OutputItemAddedEventOutput(
             item=item,
             output_index=0,
             sequence_number=1,
             type="response.output_item.added",
         ),
-        OutputItemDoneEvent(
+        OutputItemDoneEventOutput(
             item=item,
             output_index=0,
             sequence_number=2,
@@ -165,7 +167,7 @@ def output_item_events(
 
 async def create_mock_stream(
     content: str = "",
-    tool_calls: Sequence[FunctionCallOutputItem] = (),
+    tool_calls: Sequence[FunctionCallOutputItemOutput] = (),
 ) -> AsyncGenerator[Any]:
     """Create a mock Agent API stream yielding tool calls and then text."""
     yield MagicMock(type="response.created")

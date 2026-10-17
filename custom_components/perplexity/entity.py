@@ -23,10 +23,6 @@ from probatio import to_openapi
 from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from perplexity.types import ResponseStreamChunk
 
-# The stream parser builds these classes, the package re-exports a different one
-from perplexity.types.function_call_output_item import FunctionCallOutputItem
-from perplexity.types.output_item import MessageOutputItem
-
 from . import PerplexityConfigEntry
 from .const import (
     CONF_REASONING_EFFORT,
@@ -237,9 +233,11 @@ async def _transform_stream(
     """Transform the Perplexity stream to delta content."""
     role_open = False
 
+    # The SDK leaves an output item as a raw dict when its generated model does
+    # not validate (a message streamed with `content: null`), so read via _field
     async for chunk in _async_iter_events(stream, entry_title):
         if chunk.type == "response.output_item.added":
-            if isinstance(chunk.item, MessageOutputItem) and not role_open:
+            if _field(chunk.item, "type") == "message" and not role_open:
                 # Consecutive message items must share one content, HA reads
                 # only the last one
                 yield {"role": "assistant"}
@@ -250,24 +248,27 @@ async def _transform_stream(
                 yield {"role": "assistant"}
                 role_open = True
             yield {"content": chunk.delta}
-        elif chunk.type == "response.output_item.done" and isinstance(
-            chunk.item, FunctionCallOutputItem
+        elif (
+            chunk.type == "response.output_item.done"
+            and _field(chunk.item, "type") == "function_call"
         ):
+            item = chunk.item
+            call_id = _field(item, "call_id")
             # One delta per call, so HA never sees two signatures in one content
             delta: conversation.AssistantContentDeltaDict = {
                 "role": "assistant",
                 "tool_calls": [
                     llm.ToolInput(
-                        id=chunk.item.call_id,
-                        tool_name=chunk.item.name,
+                        id=call_id,
+                        tool_name=_field(item, "name"),
                         tool_args=_decode_tool_arguments(
-                            chunk.item.arguments, entry_title
+                            _field(item, "arguments"), entry_title
                         ),
                     )
                 ],
             }
-            if chunk.item.thought_signature:
-                delta["native"] = {chunk.item.call_id: chunk.item.thought_signature}
+            if signature := _field(item, "thought_signature"):
+                delta["native"] = {call_id: signature}
             yield delta
             role_open = False
 

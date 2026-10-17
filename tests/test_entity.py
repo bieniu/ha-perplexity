@@ -14,6 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from perplexity import AuthenticationError, PerplexityError
+from perplexity.generated.api import FunctionCallOutputItemOutput
+from perplexity.types.function_call_output_item import FunctionCallOutputItem
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.perplexity.const import DOMAIN
@@ -367,6 +369,56 @@ async def test_transform_stream(
     assert [
         d async for d in _transform_stream(_as_stream(chunks), "Perplexity")
     ] == expected
+
+
+_TURN_ON_ITEM = {
+    "id": "fc_call_1",
+    "call_id": "call_1",
+    "name": "intent__HassTurnOn",
+    "arguments": '{"name":"light"}',
+    "status": "completed",
+    "type": "function_call",
+}
+
+
+@pytest.mark.parametrize(
+    "item",
+    [
+        FunctionCallOutputItem(**_TURN_ON_ITEM),
+        FunctionCallOutputItemOutput(**_TURN_ON_ITEM),
+        _TURN_ON_ITEM,
+    ],
+)
+async def test_transform_stream_item_class(item: object) -> None:
+    """Test tool calls are kept whichever SDK class or raw dict the stream builds."""
+    stream = _as_stream([SimpleNamespace(type="response.output_item.done", item=item)])
+
+    deltas = [d async for d in _transform_stream(stream, "Perplexity")]
+
+    assert deltas == [{"role": "assistant", "tool_calls": [_TURN_ON_INPUT]}]
+
+
+async def test_transform_stream_dict_message_item() -> None:
+    """Test a message item the SDK could not validate still opens the role."""
+    stream = _as_stream(
+        [
+            SimpleNamespace(
+                type="response.output_item.added",
+                item={
+                    "content": None,
+                    "id": "msg_1",
+                    "role": "assistant",
+                    "status": "completed",
+                    "type": "message",
+                },
+            ),
+            _chunk("response.output_text.delta", delta="Włączone."),
+        ]
+    )
+
+    deltas = [d async for d in _transform_stream(stream, "Perplexity")]
+
+    assert deltas == [{"role": "assistant"}, {"content": "Włączone."}]
 
 
 @pytest.mark.parametrize(
