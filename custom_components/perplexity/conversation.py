@@ -4,14 +4,13 @@ from typing import Literal
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
-from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
+from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT, MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import PerplexityConfigEntry
 from .const import (
     CONF_INCLUDE_HOME_LOCATION,
-    CONF_PROMPT,
     DOMAIN,
     SUBENTRY_TYPE_CONVERSATION,
 )
@@ -78,32 +77,18 @@ class PerplexityConversationEntity(PerplexityEntity, conversation.ConversationEn
         """Build extra system prompt with optional home location."""
         parts: list[str] = []
 
-        if location_prompt := self._get_home_location_prompt():
-            parts.append(location_prompt)
+        if self.subentry.data.get(CONF_INCLUDE_HOME_LOCATION):
+            config = self.hass.config
+            latitude, longitude = round(config.latitude, 3), round(config.longitude, 3)
+            location = [
+                "User's home location information:",
+                f"Coordinates: {latitude},{longitude}",
+            ]
+            if config.country:
+                location.append(f"Country: {config.country}")
+            parts.append("\n".join(location))
 
         if original_extra_prompt:
             parts.append(original_extra_prompt)
 
         return "\n".join(parts) if parts else None
-
-    def _get_home_location_prompt(self) -> str | None:
-        """Get a prompt with home location information."""
-        if not self.subentry.data.get(CONF_INCLUDE_HOME_LOCATION):
-            return None
-
-        location_parts: list[str] = []
-
-        latitude = self.hass.config.latitude
-        longitude = self.hass.config.longitude
-        if latitude is not None and longitude is not None:
-            location_parts.append(
-                f"Coordinates: {round(latitude, 3)},{round(longitude, 3)}"
-            )
-
-        if country := self.hass.config.country:
-            location_parts.append(f"Country: {country}")
-
-        if not location_parts:
-            return None
-
-        return "User's home location information:\n" + "\n".join(location_parts)

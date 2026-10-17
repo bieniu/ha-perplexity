@@ -8,7 +8,6 @@ from mimetypes import guess_file_type
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import aiofiles
 import probatio
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigSubentry
@@ -49,7 +48,8 @@ def _api_error(entry_title: str, error: str) -> HomeAssistantError:
 
 def _adjust_schema(schema: dict[str, Any]) -> None:
     """Adjust the schema to be compatible with Perplexity API."""
-    if schema["type"] == "object":
+    schema_type = schema.get("type")
+    if schema_type == "object":
         if "properties" not in schema:
             return
 
@@ -60,10 +60,12 @@ def _adjust_schema(schema: dict[str, Any]) -> None:
         for prop, prop_info in schema["properties"].items():
             _adjust_schema(prop_info)
             if prop not in schema["required"]:
-                prop_info["type"] = [prop_info["type"], "null"]
+                # Combinators like anyOf carry no type to make nullable
+                if "type" in prop_info:
+                    prop_info["type"] = [prop_info["type"], "null"]
                 schema["required"].append(prop)
 
-    elif schema["type"] == "array":
+    elif schema_type == "array":
         if "items" not in schema:
             return
 
@@ -145,7 +147,10 @@ def _convert_content_to_input(
         if content.role == "system":
             continue
 
-        if content.content:
+        # Attachments are added to this item later, even without text
+        if content.content or (
+            isinstance(content, conversation.UserContent) and content.attachments
+        ):
             items.append(
                 {"type": "message", "role": content.role, "content": content.content}
             )
@@ -273,13 +278,10 @@ async def _transform_stream(
             role_open = False
 
 
-async def _async_prepare_files_for_prompt(
+def _prepare_files_for_prompt(
     files: list[tuple[Path, str | None]],
 ) -> list[dict[str, Any]]:
-    """Prepare files for the prompt.
-
-    Caller needs to ensure that the files are allowed.
-    """
+    """Prepare files for the prompt; the caller must ensure they are allowed."""
     content: list[dict[str, Any]] = []
 
     for file_path, mime_type in files:
@@ -300,9 +302,7 @@ async def _async_prepare_files_for_prompt(
                 translation_placeholders={"file_path": str(file_path)},
             )
 
-        async with aiofiles.open(file_path, "rb") as f:
-            file_bytes = await f.read()
-        base64_file = base64.b64encode(file_bytes).decode("utf-8")
+        base64_file = base64.b64encode(file_path.read_bytes()).decode("utf-8")
         content.append(
             {
                 "type": "input_image",
@@ -382,13 +382,16 @@ class PerplexityEntity(Entity):
                 assert isinstance(last_message["content"], str)
 
             # Encode files with base64 and append them to the text prompt
-            files = await _async_prepare_files_for_prompt(
+            files = await self.hass.async_add_executor_job(
+                _prepare_files_for_prompt,
                 [(a.path, a.mime_type) for a in last_content.attachments],
             )
-            last_message["content"] = [
-                {"type": "input_text", "text": last_message["content"]},
-                *files,
-            ]
+            text_parts = (
+                [{"type": "input_text", "text": last_message["content"]}]
+                if last_message["content"]
+                else []
+            )
+            last_message["content"] = [*text_parts, *files]
 
         if structure:
             model_args["response_format"] = _format_structured_output(

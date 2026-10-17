@@ -1,6 +1,6 @@
 """Tests helpers for the Perplexity integration."""
 
-from collections.abc import AsyncGenerator, Callable, Generator, Sequence
+from collections.abc import AsyncGenerator, Generator, Sequence
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
@@ -10,7 +10,7 @@ from homeassistant.components.conversation.const import DOMAIN as CONVERSATION_D
 from homeassistant.components.homeassistant.exposed_entities import (
     async_expose_entity,
 )
-from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL
+from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_MODEL, CONF_PROMPT
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.setup import async_setup_component
 
@@ -30,7 +30,6 @@ from syrupy.extensions.amber import AmberSnapshotExtension
 from syrupy.location import PyTestLocation
 
 from custom_components.perplexity.const import (
-    CONF_PROMPT,
     DOMAIN,
     SUBENTRY_TYPE_AI_TASK,
     SUBENTRY_TYPE_CONVERSATION,
@@ -86,16 +85,25 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
 
 
 @pytest.fixture
-def mock_perplexity_client() -> Generator[MagicMock]:
+def mock_perplexity_class() -> Generator[MagicMock]:
+    """Patch the Perplexity client class in the integration and its config flow."""
+    with (
+        patch(
+            "custom_components.perplexity.AsyncPerplexity", autospec=True
+        ) as mock_class,
+        patch("custom_components.perplexity.config_flow.AsyncPerplexity", mock_class),
+    ):
+        yield mock_class
+
+
+@pytest.fixture
+def mock_perplexity_client(mock_perplexity_class: MagicMock) -> MagicMock:
     """Mock the Perplexity client."""
-    with patch(
-        "custom_components.perplexity.AsyncPerplexity", autospec=True
-    ) as mock_client:
-        client = mock_client.return_value
-        client.platform_headers = MagicMock(return_value={})
-        client.responses = MagicMock()
-        client.responses.create = AsyncMock(return_value=MagicMock())
-        yield client
+    client = mock_perplexity_class.return_value
+    client.platform_headers = MagicMock(return_value={})
+    client.responses = MagicMock()
+    client.responses.create = AsyncMock(return_value=MagicMock())
+    return client
 
 
 @pytest.fixture
@@ -105,12 +113,8 @@ async def mock_setup_entry(
     mock_perplexity_client: MagicMock,
 ) -> MockConfigEntry:
     """Set up the Perplexity integration for testing."""
-    with patch(
-        "custom_components.perplexity.AsyncPerplexity",
-        return_value=mock_perplexity_client,
-    ):
-        assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
-        await hass.async_block_till_done()
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
     return mock_config_entry
 
 
@@ -179,12 +183,6 @@ async def create_mock_stream(
         yield output_item_events(message_item())[0]
         yield MagicMock(type="response.output_text.delta", delta=content)
     yield MagicMock(type="response.completed", response=MagicMock(status="completed"))
-
-
-@pytest.fixture
-def mock_stream() -> Callable[..., AsyncGenerator[Any]]:
-    """Mock stream fixture."""
-    return create_mock_stream
 
 
 def expose_light(hass: HomeAssistant) -> list[ServiceCall]:

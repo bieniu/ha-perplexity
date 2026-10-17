@@ -22,101 +22,108 @@ from custom_components.perplexity.const import DOMAIN
 from custom_components.perplexity.entity import (
     _adjust_schema,
     _async_iter_events,
-    _async_prepare_files_for_prompt,
     _convert_content_to_input,
     _format_structured_output,
     _format_tool,
+    _prepare_files_for_prompt,
     _transform_stream,
 )
 
 from .conftest import function_call_item, message_item, output_item_events
 
 
-def test_adjust_schema_object_with_properties() -> None:
-    """Test _adjust_schema with object type and properties."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer"},
-        },
-    }
-    _adjust_schema(schema)
-
-    assert schema["required"] == ["name", "age"]
-    assert schema["properties"]["name"]["type"] == ["string", "null"]
-    assert schema["properties"]["age"]["type"] == ["integer", "null"]
-
-
-def test_adjust_schema_object_without_properties() -> None:
-    """Test _adjust_schema with object type but no properties."""
-    schema = {"type": "object"}
-    _adjust_schema(schema)
-
-    assert "required" not in schema
-
-
-def test_adjust_schema_object_with_existing_required() -> None:
-    """Test _adjust_schema with object that already has required fields."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer"},
-        },
-        "required": ["name"],
-    }
-    _adjust_schema(schema)
-
-    assert "name" in schema["required"]
-    assert "age" in schema["required"]
-    # name was already required, so type should not be modified to include null
-    assert schema["properties"]["name"]["type"] == "string"
-    # age was not required, so type should be modified
-    assert schema["properties"]["age"]["type"] == ["integer", "null"]
-
-
-def test_adjust_schema_array_with_items() -> None:
-    """Test _adjust_schema with array type and items."""
-    schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "id": {"type": "integer"},
+@pytest.mark.parametrize(
+    ("schema", "expected"),
+    [
+        (
+            {
+                "type": "object",
+                "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
             },
-        },
-    }
-    _adjust_schema(schema)
-
-    assert schema["items"]["required"] == ["id"]
-
-
-def test_adjust_schema_array_without_items() -> None:
-    """Test _adjust_schema with array type but no items."""
-    schema = {"type": "array"}
-    _adjust_schema(schema)
-
-    assert "items" not in schema
-
-
-def test_adjust_schema_nested_objects() -> None:
-    """Test _adjust_schema with nested object structures."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "nested": {
+            {
                 "type": "object",
                 "properties": {
-                    "value": {"type": "string"},
+                    "name": {"type": ["string", "null"]},
+                    "age": {"type": ["integer", "null"]},
+                },
+                "required": ["name", "age"],
+            },
+        ),
+        ({"type": "object"}, {"type": "object"}),
+        (
+            {
+                "type": "object",
+                "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
+                "required": ["name"],
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "age": {"type": ["integer", "null"]},
+                },
+                "required": ["name", "age"],
+            },
+        ),
+        (
+            {
+                "type": "array",
+                "items": {"type": "object", "properties": {"id": {"type": "integer"}}},
+            },
+            {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"id": {"type": ["integer", "null"]}},
+                    "required": ["id"],
                 },
             },
-        },
-    }
+        ),
+        ({"type": "array"}, {"type": "array"}),
+        (
+            {
+                "type": "object",
+                "properties": {
+                    "nested": {
+                        "type": "object",
+                        "properties": {"value": {"type": "string"}},
+                    },
+                },
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "nested": {
+                        "type": ["object", "null"],
+                        "properties": {"value": {"type": ["string", "null"]}},
+                        "required": ["value"],
+                    },
+                },
+                "required": ["nested"],
+            },
+        ),
+        (
+            {
+                "type": "object",
+                "properties": {
+                    "x": {"anyOf": [{"type": "string"}, {"type": "integer"}]}
+                },
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "x": {"anyOf": [{"type": "string"}, {"type": "integer"}]}
+                },
+                "required": ["x"],
+            },
+        ),
+    ],
+)
+def test_adjust_schema(schema: dict[str, Any], expected: dict[str, Any]) -> None:
+    """Test _adjust_schema makes every property required."""
     _adjust_schema(schema)
 
-    assert schema["required"] == ["nested"]
-    assert schema["properties"]["nested"]["required"] == ["value"]
+    assert schema == expected
 
 
 def test_format_structured_output_without_llm_api() -> None:
@@ -440,70 +447,30 @@ async def test_transform_stream_invalid_arguments(arguments: str, error: str) ->
     assert error in placeholders["error"]
 
 
-async def test_async_prepare_files_for_prompt_file_not_exists(
-    hass: HomeAssistant,
-) -> None:
-    """Test _async_prepare_files_for_prompt with non-existent file."""
+def test_prepare_files_for_prompt_file_not_exists() -> None:
+    """Test _prepare_files_for_prompt with non-existent file."""
     with pytest.raises(HomeAssistantError, match="file_not_found"):
-        await _async_prepare_files_for_prompt(
-            [(Path("/non/existent/file.png"), "image/png")]
-        )
+        _prepare_files_for_prompt([(Path("/non/existent/file.png"), "image/png")])
 
 
-async def test_async_prepare_files_for_prompt_non_image(
-    hass: HomeAssistant,
-    tmp_path: Path,
-) -> None:
-    """Test _async_prepare_files_for_prompt with non-image file."""
+def test_prepare_files_for_prompt_non_image(tmp_path: Path) -> None:
+    """Test _prepare_files_for_prompt with non-image file."""
     test_file = tmp_path / "test.txt"
     test_file.write_text("test content")
 
     with pytest.raises(HomeAssistantError, match="unsupported_file_type"):
-        await _async_prepare_files_for_prompt([(test_file, "text/plain")])
+        _prepare_files_for_prompt([(test_file, "text/plain")])
 
 
-async def test_async_prepare_files_for_prompt_success(
-    hass: HomeAssistant,
-    tmp_path: Path,
-) -> None:
-    """Test _async_prepare_files_for_prompt with valid image file."""
-    # Create a minimal PNG file (1x1 pixel)
+@pytest.mark.parametrize("mime_type", ["image/png", None])
+def test_prepare_files_for_prompt(tmp_path: Path, mime_type: str | None) -> None:
+    """Test _prepare_files_for_prompt with an image, guessing a missing mime type."""
     test_file = tmp_path / "test.png"
-    # Minimal PNG header
-    png_data = (
-        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-        b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx"
-        b"\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
-    )
-    test_file.write_bytes(png_data)
+    test_file.write_bytes(b"fake-png")
 
-    result = await _async_prepare_files_for_prompt([(test_file, "image/png")])
-
-    assert len(result) == 1
-    assert result[0]["type"] == "input_image"
-    assert result[0]["image_url"].startswith("data:image/png;base64,")
-
-
-async def test_async_prepare_files_for_prompt_auto_mime_type(
-    hass: HomeAssistant,
-    tmp_path: Path,
-) -> None:
-    """Test _async_prepare_files_for_prompt with auto-detected mime type."""
-    # Create a minimal PNG file
-    test_file = tmp_path / "test.png"
-    png_data = (
-        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-        b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx"
-        b"\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
-    )
-    test_file.write_bytes(png_data)
-
-    # Pass None as mime_type to trigger auto-detection
-    result = await _async_prepare_files_for_prompt([(test_file, None)])
-
-    assert len(result) == 1
-    assert result[0]["type"] == "input_image"
-    assert "base64," in result[0]["image_url"]
+    assert _prepare_files_for_prompt([(test_file, mime_type)]) == [
+        {"type": "input_image", "image_url": "data:image/png;base64,ZmFrZS1wbmc="}
+    ]
 
 
 async def test_ai_task_api_error(
