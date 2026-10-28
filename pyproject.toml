@@ -4,7 +4,7 @@ version = "0.0.0"
 description = "Custom Home Assistant integration for Perplexity"
 requires-python = ">=3.14.2"
 dependencies = [
-    "perplexityai==0.44.0",
+    "perplexityai==0.46.1",
 ]
 
 [dependency-groups]
