@@ -17,7 +17,7 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/bieniu/ha-perplexity",
     "requirements": [
-        "perplexityai==0.44.0"
+        "perplexityai==0.46.1"
     ],
     "version": "0.0.0"
 }
