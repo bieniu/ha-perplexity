@@ -1,6 +1,11 @@
 version: 2
 enable-beta-ecosystems: true
 
+multi-ecosystem-groups:
+  dev:
+    schedule:
+      interval: "weekly"
+
 updates:
   - package-ecosystem: "pip"
     directory: "/"
@@ -10,13 +15,10 @@ updates:
       runtime:
         patterns:
           - "perplexityai"
-      dev:
+      test:
         patterns:
-          - "prek"
           - "pytest"
           - "pytest-*"
-          - "ruff"
-          - "ty"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -26,7 +28,6 @@ updates:
       ci:
         patterns: ["*"]
 
-
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
@@ -34,3 +35,18 @@ updates:
     groups:
       pre-commit:
         patterns: ["*"]
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    patterns:
+      - "prek"
+      - "ruff"
+      - "ty"
+    multi-ecosystem-group: "dev"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    patterns:
+      - "*/astral-sh/ruff-pre-commit"
+      - "*/astral-sh/ty-pre-commit"
+    multi-ecosystem-group: "dev"
