@@ -16,8 +16,8 @@ dev = [
     "pytest-error-for-skips==2.0.2",
     "pytest-homeassistant-custom-component==0.13.374",
     "pyturbojpeg",
-    "ruff==0.17.2",
-    "ty==0.0.91",
+    "ruff==0.17.3",
+    "ty==0.0.92",
 ]
 
 [tool.uv]
