@@ -27,10 +27,11 @@ CI runs in order: lint → format check (`--check`) → types → prek → test.
 
 ## Architecture
 
-- Integration type `service` with **subentries**: one per AI Task / Conversation agent
+- Integration type `service` with **subentries**: one per AI Task (`ai_task_data`), decision task (`ai_task_evaluate`) or Conversation agent
 - `__init__.py` creates `AsyncPerplexity` client, stores in `entry.runtime_data`, typed as `PerplexityConfigEntry`
 - `const.py` is the single source of truth for presets (`fast`, `low`, `medium`, `high`), option keys, defaults, and the legacy Sonar model → preset migration map
-- `entity.py` handles all Perplexity API calls via the Agent API `client.responses.create` (preset, `instructions` + `input`, streaming events such as `response.output_text.delta`, structured output, file attachments, auth/API errors)
+- `entity.py` handles the Agent API calls via `client.responses.create` (preset, `instructions` + `input`, streaming events such as `response.output_text.delta`, structured output, file attachments, auth/API errors)
+- `ai_task.py` also hosts the decision entity (`AITaskEntityFeature.EVALUATE`, HA 2026.11+) calling `client.decisions.create` with a decider model from `const.py`; no chat log, tools or attachments on that path
 - Conversation control uses HA LLM tools (`chat_log.llm_api.tools`) sent as Agent API `function` tools; tool results are echoed as `function_call` + `function_call_output`; `MAX_TOOL_ITERATIONS` bounds the loop. Delayed commands come from core's `HassStartTimer` on timer-capable devices only, the integration has no scheduler of its own
 - **Two dependency sources**: `pyproject.toml` for uv, `manifest.json` for HA runtime. `sync-manifest.yml` workflow keeps `perplexityai` version in sync when dependabot updates `pyproject.toml`.
 
