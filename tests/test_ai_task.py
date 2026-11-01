@@ -11,7 +11,7 @@ from homeassistant.components import ai_task, media_source
 from homeassistant.config_entries import SOURCE_REAUTH
 from homeassistant.const import CONF_MODEL
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
 from perplexity import AuthenticationError, PerplexityError
 from pytest_homeassistant.common import MockConfigEntry
@@ -560,18 +560,47 @@ async def test_evaluate_api_error(
     }
 
 
-async def test_evaluate_attachments_not_supported(
+IMAGE_PART = {
+    "type": "image_url",
+    "image_url": {"url": "data:image/png;base64,ZmFrZS1wbmc="},
+}
+
+
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [
+        ("Overcast", ["Overcast", IMAGE_PART]),
+        (None, [IMAGE_PART]),
+        ({"humidity": 95}, [{"humidity": 95}, IMAGE_PART]),
+    ],
+)
+async def test_evaluate_with_attachment(
     hass: HomeAssistant,
     mock_setup_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
+    tmp_path: Path,
+    state: JsonValueType,
+    expected: list[Any],
 ) -> None:
-    """Test core rejects attachments before the API is called."""
-    with pytest.raises(ServiceValidationError) as exc:
+    """Test image attachments are appended to the state as image parts."""
+    image = tmp_path / "image.png"
+    image.write_bytes(b"fake-png")
+    mock_perplexity_client.decisions.create.return_value = _decision_response(
+        {"rain": ANSWERS["rain"]}
+    )
+
+    with patch(
+        "homeassistant.components.media_source.async_resolve_media",
+        return_value=media_source.PlayMedia(
+            url="http://example.com/image.png", mime_type="image/png", path=image
+        ),
+    ):
         await ai_task.async_evaluate(
             hass,
             task_name="Weather check",
             entity_id="ai_task.decider",
-            questions=QUESTIONS,
+            state=state,
+            questions={"rain": QUESTIONS["rain"]},
             attachments=[
                 {
                     "media_content_id": "media-source://media/image.png",
@@ -580,5 +609,42 @@ async def test_evaluate_attachments_not_supported(
             ],
         )
 
-    assert exc.value.translation_key == "attachments_not_supported"
+    assert mock_perplexity_client.decisions.create.call_args.kwargs["state"] == expected
+
+
+async def test_evaluate_unsupported_attachment(
+    hass: HomeAssistant,
+    mock_setup_entry: MockConfigEntry,
+    mock_perplexity_client: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Test a non-image attachment raises before the API is called."""
+    document = tmp_path / "notes.txt"
+    document.write_text("Overcast")
+
+    with (
+        patch(
+            "homeassistant.components.media_source.async_resolve_media",
+            return_value=media_source.PlayMedia(
+                url="http://example.com/notes.txt",
+                mime_type="text/plain",
+                path=document,
+            ),
+        ),
+        pytest.raises(HomeAssistantError) as exc,
+    ):
+        await ai_task.async_evaluate(
+            hass,
+            task_name="Weather check",
+            entity_id="ai_task.decider",
+            questions=QUESTIONS,
+            attachments=[
+                {
+                    "media_content_id": "media-source://media/notes.txt",
+                    "media_content_type": "text/plain",
+                }
+            ],
+        )
+
+    assert exc.value.translation_key == "unsupported_file_type"
     mock_perplexity_client.decisions.create.assert_not_awaited()

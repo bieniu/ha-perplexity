@@ -48,7 +48,7 @@ Perplexity integration supports:
 
 - [Conversation](https://www.home-assistant.io/integrations/conversation/) platform (beta)
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
-- AI task evaluation (`ai_task.evaluate`) backed by the Perplexity Decisions API, answering yes/no, choice and score questions with probabilities instead of text (requires Home Assistant 2026.11)
+- AI task evaluation (`ai_task.evaluate`) backed by the Perplexity Decisions API, answering yes/no, choice and score questions with probabilities instead of text; image attachments (PNG, JPEG, WebP) are evaluated together with `state`.
 - **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API); see [what each preset does](https://docs.perplexity.ai/docs/agent-api/presets)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
 - control of entities exposed to Assist through Home Assistant's LLM tools (the **Assist** API), the same way the built-in AI integrations work
@@ -145,6 +145,53 @@ answers:
       - 0.1
       - 0.5
       - 0.4
+```
+
+### Checking a camera snapshot with questions
+
+```yaml
+action: ai_task.evaluate
+data:
+  task_name: Driveway check
+  entity_id: ai_task.decider
+  state: Front driveway, 14:05
+  attachments:
+    media_content_id: media-source://camera/camera.parking
+    media_content_type: application/vnd.apple.mpegurl
+    metadata:
+      title: parking
+      thumbnail: /api/camera_proxy/camera.parking
+      media_class: video
+      navigateIds:
+        - media_content_type: app
+          media_content_id: media-source://camera
+  questions:
+    van:
+      type: noul
+      instructions: Is a delivery van parked in the driveway?
+    cars:
+      type: choice
+      instructions: How many cars are parked in the driveway?
+      criteria:
+        - none
+        - one
+        - two or more
+```
+
+Response:
+
+```yaml
+answers:
+  van:
+    type: noul
+    noul: 0.91
+  cars:
+    type: choice
+    choice: two or more
+    probabilities:
+      none: 0.05
+      one: 0.25
+      two or more: 0.70
 ```
 
 ## How to debug

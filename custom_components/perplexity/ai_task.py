@@ -12,7 +12,7 @@ from perplexity.types import DecisionAnswer
 
 from . import PerplexityConfigEntry
 from .const import DOMAIN, SUBENTRY_TYPE_AI_TASK, SUBENTRY_TYPE_AI_TASK_EVALUATE
-from .entity import PerplexityEntity
+from .entity import PerplexityEntity, _prepare_files_for_prompt
 
 
 async def async_setup_entry(
@@ -154,7 +154,10 @@ class PerplexityEvaluateEntity(
     """Perplexity AI task evaluation entity backed by the Decisions API."""
 
     _attr_name = None
-    _attr_supported_features = ai_task.AITaskEntityFeature.EVALUATE
+    _attr_supported_features = (
+        ai_task.AITaskEntityFeature.EVALUATE
+        | ai_task.AITaskEntityFeature.SUPPORT_ATTACHMENTS
+    )
 
     async def _async_evaluate(
         self, task: ai_task.EvaluationTask
@@ -164,6 +167,21 @@ class PerplexityEvaluateEntity(
         # The API accepts only text, an object or an array as state
         if not isinstance(state, str | dict | list):
             state = json_dumps(state)
+
+        if task.attachments:
+            files = await self.hass.async_add_executor_job(
+                _prepare_files_for_prompt,
+                [
+                    (attachment.path, attachment.mime_type)
+                    for attachment in task.attachments
+                ],
+            )
+            # The Decisions API takes OpenAI-style image parts, not Agent API ones
+            images = [
+                {"type": "image_url", "image_url": {"url": file["image_url"]}}
+                for file in files
+            ]
+            state = images if task.state is None else [state, *images]
 
         client: AsyncPerplexity = self.entry.runtime_data
         try:
