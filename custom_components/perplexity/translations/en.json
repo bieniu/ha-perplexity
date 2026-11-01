@@ -70,6 +70,23 @@
                 }
             }
         },
+        "ai_task_evaluate": {
+            "entry_type": "Decision task",
+            "initiate_flow": {
+                "user": "Add decision task"
+            },
+            "step": {
+                "user": {
+                    "data": {
+                        "model": "Model"
+                    },
+                    "data_description": {
+                        "model": "The Perplexity decision model to use. `Decider` is more accurate, `Decider Flash` is faster. See {decisions_url}"
+                    },
+                    "description": "Configure the new decision task. Use it under **Decisions** in **Settings** >> **Voice assistants** >> **AI** or with the `ai_task.evaluate` action"
+                }
+            }
+        },
         "conversation": {
             "abort": {
                 "entry_not_loaded": "The Perplexity integration is not loaded. Please ensure it is set up correctly before adding a conversation agent.",
@@ -109,6 +126,9 @@
         "file_not_found": {
             "message": "`{file_path}` does not exist"
         },
+        "invalid_decision_response": {
+            "message": "Invalid decision response from {entry}: {error}"
+        },
         "no_assistant_response": {
             "message": "Last content in chat log is not an AssistantContent"
         },
@@ -129,6 +149,12 @@
                 "low": "Low",
                 "medium": "Medium",
                 "high": "High"
+            }
+        },
+        "decision_model": {
+            "options": {
+                "pplx-decider-latest": "Decider",
+                "pplx-decider-flash-latest": "Decider Flash"
             }
         },
         "reasoning_effort": {

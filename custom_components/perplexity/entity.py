@@ -330,6 +330,17 @@ class PerplexityEntity(Entity):
             entry_type=dr.DeviceEntryType.SERVICE,
         )
 
+    def _translate_api_error(self, err: PerplexityError) -> HomeAssistantError:
+        """Map an SDK error to the translated HA error, starting reauth when needed."""
+        if isinstance(err, AuthenticationError):
+            self.entry.async_start_reauth(self.hass)
+            return HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="auth_error",
+                translation_placeholders={"entry": self.entry.title},
+            )
+        return _api_error(self.entry.title, str(err))
+
     async def _async_handle_chat_log(
         self,
         chat_log: conversation.ChatLog,
@@ -404,15 +415,8 @@ class PerplexityEntity(Entity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             try:
                 stream = await client.responses.create(**model_args)
-            except AuthenticationError as err:
-                self.entry.async_start_reauth(self.hass)
-                raise HomeAssistantError(
-                    translation_domain=DOMAIN,
-                    translation_key="auth_error",
-                    translation_placeholders={"entry": self.entry.title},
-                ) from err
             except PerplexityError as err:
-                raise _api_error(self.entry.title, str(err)) from err
+                raise self._translate_api_error(err) from err
 
             model_args["input"].extend(
                 _convert_content_to_input(

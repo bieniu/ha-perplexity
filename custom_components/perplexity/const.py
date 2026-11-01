@@ -30,7 +30,15 @@ REASONING_EFFORT_OPTIONS = ["minimal", "low", "medium", "high", "xhigh"]
 WEB_SEARCH_ADDITIONAL_INSTRUCTION = "Do not include citations in your response."
 
 SUBENTRY_TYPE_AI_TASK = "ai_task_data"
+SUBENTRY_TYPE_AI_TASK_EVALUATE = "ai_task_evaluate"
 SUBENTRY_TYPE_CONVERSATION = "conversation"
+
+# The Decisions API accepts only the decider models, not the Agent API presets
+RECOMMENDED_DECISION_MODEL = "pplx-decider-latest"
+DECISION_MODELS = {
+    "pplx-decider-latest": "Decider",
+    "pplx-decider-flash-latest": "Decider Flash",
+}
 
 RECOMMENDED_CONVERSATION_OPTIONS = {
     CONF_LLM_HASS_API: [llm.LLM_API_ASSIST],

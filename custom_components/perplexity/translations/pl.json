@@ -70,6 +70,23 @@
                 }
             }
         },
+        "ai_task_evaluate": {
+            "entry_type": "Zadanie decyzyjne",
+            "initiate_flow": {
+                "user": "Dodaj zadanie decyzyjne"
+            },
+            "step": {
+                "user": {
+                    "data": {
+                        "model": "Model"
+                    },
+                    "data_description": {
+                        "model": "Model decyzyjny Perplexity. `Decider` jest dok\u0142adniejszy, `Decider Flash` jest szybszy. Zobacz {decisions_url}"
+                    },
+                    "description": "Skonfiguruj nowe zadanie decyzyjne. U\u017cyj go w sekcji **Decyzje** w **Ustawienia** >> **Asystenci g\u0142osowi** >> **AI** lub z akcj\u0105 `ai_task.evaluate`"
+                }
+            }
+        },
         "conversation": {
             "abort": {
                 "entry_not_loaded": "Integracja Perplexity nie jest za\u0142adowana. Przed dodaniem agenta konwersacji upewnij si\u0119, \u017ce jest poprawnie skonfigurowana.",
@@ -109,6 +126,9 @@
         "file_not_found": {
             "message": "`{file_path}` nie istnieje"
         },
+        "invalid_decision_response": {
+            "message": "Nieprawid\u0142owa odpowied\u017a decyzyjna z {entry}: {error}"
+        },
         "no_assistant_response": {
             "message": "Ostatnia tre\u015b\u0107 w dzienniku czatu nie jest tre\u015bci\u0105 AssistantContent"
         },
@@ -129,6 +149,12 @@
                 "low": "niski",
                 "medium": "\u015bredni",
                 "high": "wysoki"
+            }
+        },
+        "decision_model": {
+            "options": {
+                "pplx-decider-latest": "Decider",
+                "pplx-decider-flash-latest": "Decider Flash"
             }
         },
         "reasoning_effort": {
