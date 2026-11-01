@@ -468,7 +468,7 @@ async def test_evaluate_invalid_response(
     """Test answers HA cannot use raise a translated error."""
     mock_perplexity_client.decisions.create.return_value = _decision_response(answers)
 
-    with pytest.raises(HomeAssistantError, match="Invalid decision response") as exc:
+    with pytest.raises(HomeAssistantError, match="Invalid evaluation response") as exc:
         await ai_task.async_evaluate(
             hass,
             task_name="Weather check",
@@ -477,7 +477,7 @@ async def test_evaluate_invalid_response(
             questions=QUESTIONS,
         )
 
-    assert exc.value.translation_key == "invalid_decision_response"
+    assert exc.value.translation_key == "invalid_evaluation_response"
     assert exc.value.translation_placeholders == {"entry": "Perplexity", "error": error}
 
 
@@ -493,7 +493,7 @@ async def test_evaluate_malformed_response(
         value={"model": "pplx-decider-latest", "answers": answers, "usage": {}},
     )
 
-    with pytest.raises(HomeAssistantError, match="Invalid decision response") as exc:
+    with pytest.raises(HomeAssistantError, match="Invalid evaluation response") as exc:
         await ai_task.async_evaluate(
             hass,
             task_name="Weather check",

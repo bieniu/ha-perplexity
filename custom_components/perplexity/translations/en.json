@@ -71,9 +71,9 @@
             }
         },
         "ai_task_evaluate": {
-            "entry_type": "Decision task",
+            "entry_type": "AI task evaluation",
             "initiate_flow": {
-                "user": "Add decision task"
+                "user": "Add AI task evaluation"
             },
             "step": {
                 "user": {
@@ -83,7 +83,7 @@
                     "data_description": {
                         "model": "The Perplexity decision model to use. `Decider` is more accurate, `Decider Flash` is faster. See {decisions_url}"
                     },
-                    "description": "Configure the new decision task. Use it under **Decisions** in **Settings** >> **Voice assistants** >> **AI** or with the `ai_task.evaluate` action"
+                    "description": "Configure the new AI task evaluation. Use it under **Decisions** in **Settings** >> **Voice assistants** >> **AI** or with the `ai_task.evaluate` action"
                 }
             }
         },
@@ -126,8 +126,8 @@
         "file_not_found": {
             "message": "`{file_path}` does not exist"
         },
-        "invalid_decision_response": {
-            "message": "Invalid decision response from {entry}: {error}"
+        "invalid_evaluation_response": {
+            "message": "Invalid evaluation response from {entry}: {error}"
         },
         "no_assistant_response": {
             "message": "Last content in chat log is not an AssistantContent"

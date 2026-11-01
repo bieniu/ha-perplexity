@@ -71,9 +71,9 @@
             }
         },
         "ai_task_evaluate": {
-            "entry_type": "Zadanie decyzyjne",
+            "entry_type": "Ocena zadania AI",
             "initiate_flow": {
-                "user": "Dodaj zadanie decyzyjne"
+                "user": "Dodaj ocen\u0119 zadania AI"
             },
             "step": {
                 "user": {
@@ -83,7 +83,7 @@
                     "data_description": {
                         "model": "Model decyzyjny Perplexity. `Decider` jest dok\u0142adniejszy, `Decider Flash` jest szybszy. Zobacz {decisions_url}"
                     },
-                    "description": "Skonfiguruj nowe zadanie decyzyjne. U\u017cyj go w sekcji **Decyzje** w **Ustawienia** >> **Asystenci g\u0142osowi** >> **AI** lub z akcj\u0105 `ai_task.evaluate`"
+                    "description": "Skonfiguruj now\u0105 ocen\u0119 zadania AI. U\u017cyj jej w sekcji **Decyzje** w **Ustawienia** >> **Asystenci g\u0142osowi** >> **AI** lub z akcj\u0105 `ai_task.evaluate`"
                 }
             }
         },
@@ -126,8 +126,8 @@
         "file_not_found": {
             "message": "`{file_path}` nie istnieje"
         },
-        "invalid_decision_response": {
-            "message": "Nieprawid\u0142owa odpowied\u017a decyzyjna z {entry}: {error}"
+        "invalid_evaluation_response": {
+            "message": "Nieprawid\u0142owa odpowied\u017a oceny z {entry}: {error}"
         },
         "no_assistant_response": {
             "message": "Ostatnia tre\u015b\u0107 w dzienniku czatu nie jest tre\u015bci\u0105 AssistantContent"

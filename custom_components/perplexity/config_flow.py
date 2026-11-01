@@ -236,12 +236,12 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
 
 
 class PerplexityEvaluateFlowHandler(ConfigSubentryFlow):
-    """Handle subentry flow for Perplexity decision task."""
+    """Handle subentry flow for Perplexity AI task evaluation."""
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """User flow to create a decision task subentry."""
+        """User flow to create an AI task evaluation subentry."""
         if user_input is not None:
             return self.async_create_entry(
                 title=DECISION_MODELS[user_input[CONF_MODEL]], data=user_input

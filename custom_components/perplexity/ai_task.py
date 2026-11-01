@@ -34,10 +34,10 @@ async def async_setup_entry(
 
 
 def _invalid_response(entry_title: str, error: str) -> HomeAssistantError:
-    """Build the translated error for a decision response HA cannot use."""
+    """Build the translated error for an evaluation response HA cannot use."""
     return HomeAssistantError(
         translation_domain=DOMAIN,
-        translation_key="invalid_decision_response",
+        translation_key="invalid_evaluation_response",
         translation_placeholders={"entry": entry_title, "error": error},
     )
 
@@ -151,7 +151,7 @@ class PerplexityEvaluateEntity(
     ai_task.AITaskEntity,
     PerplexityEntity,
 ):
-    """Perplexity decision entity backed by the Decisions API."""
+    """Perplexity AI task evaluation entity backed by the Decisions API."""
 
     _attr_name = None
     _attr_supported_features = ai_task.AITaskEntityFeature.EVALUATE

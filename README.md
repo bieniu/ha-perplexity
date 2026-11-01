@@ -26,7 +26,7 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
 
-Now you can add Perplexity conversation agent, AI task or decision task configuration.
+Now you can add Perplexity conversation agent, AI task or AI task evaluation configuration.
 
 <img width="1031" height="116" alt="obraz" src="https://github.com/user-attachments/assets/a8ef5247-93d8-4ff7-9186-0136bc1eeb8f" />
 
@@ -45,7 +45,7 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 
   <img width="607" height="421" alt="obraz" src="https://github.com/user-attachments/assets/aae705c7-59cd-4709-9ba8-cf20061dcb97" />
 
-- You can use the Perplexity decision task as the decision model for Home Assistant. Go to **Settings** >> **Voice assistants** >> **AI** and select it under **Decisions**.
+- You can use the Perplexity AI task evaluation for decisions in Home Assistant. Go to **Settings** >> **Voice assistants** >> **AI** and select it under **Decisions**.
 
 ## Features
 
@@ -53,7 +53,7 @@ Perplexity integration supports:
 
 - [Conversation](https://www.home-assistant.io/integrations/conversation/) platform (beta)
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
-- decision tasks (`ai_task.evaluate`) backed by the Perplexity Decisions API, answering yes/no, choice and score questions with probabilities instead of text (requires Home Assistant 2026.11)
+- AI task evaluation (`ai_task.evaluate`) backed by the Perplexity Decisions API, answering yes/no, choice and score questions with probabilities instead of text (requires Home Assistant 2026.11)
 - **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API); see [what each preset does](https://docs.perplexity.ai/docs/agent-api/presets)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
 - control of entities exposed to Assist through Home Assistant's LLM tools (the **Assist** API), the same way the built-in AI integrations work
