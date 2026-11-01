@@ -167,13 +167,16 @@ async def test_migrate_entry_from_v1(
     assert entry.subentries["ulid-sonar"].title == "ulid-sonar"
 
 
-@pytest.mark.parametrize("platform", [Platform.AI_TASK, Platform.CONVERSATION])
+@pytest.mark.parametrize(
+    ("platform", "entity_count"), [(Platform.AI_TASK, 2), (Platform.CONVERSATION, 1)]
+)
 async def test_platform_entity(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
     mock_perplexity_client: MagicMock,
     snapshot: SnapshotAssertion,
     platform: Platform,
+    entity_count: int,
 ) -> None:
     """Test the entity registry entry and state of each platform."""
     with patch("custom_components.perplexity.PLATFORMS", [platform]):
@@ -183,7 +186,7 @@ async def test_platform_entity(
     entity_entries = er.async_entries_for_config_entry(
         er.async_get(hass), mock_config_entry.entry_id
     )
-    assert len(entity_entries) == 1
+    assert len(entity_entries) == entity_count
 
     for entity_entry in entity_entries:
         entity_entry_dict = entity_entry.as_partial_dict

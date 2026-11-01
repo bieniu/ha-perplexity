@@ -22,6 +22,7 @@ from custom_components.perplexity.const import (
     DOMAIN,
     MIN_MAX_TOKENS,
     SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_AI_TASK_EVALUATE,
     SUBENTRY_TYPE_CONVERSATION,
 )
 
@@ -153,11 +154,15 @@ async def test_user_flow_already_configured(
 async def test_get_supported_subentry_types(
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Test async_get_supported_subentry_types returns AI task and conversation."""
+    """Test async_get_supported_subentry_types returns every subentry type."""
     subentry_types = PerplexityConfigFlow.async_get_supported_subentry_types(
         mock_config_entry
     )
-    assert set(subentry_types) == {SUBENTRY_TYPE_AI_TASK, SUBENTRY_TYPE_CONVERSATION}
+    assert set(subentry_types) == {
+        SUBENTRY_TYPE_AI_TASK,
+        SUBENTRY_TYPE_AI_TASK_EVALUATE,
+        SUBENTRY_TYPE_CONVERSATION,
+    }
 
 
 async def test_ai_task_subentry_flow(
@@ -180,6 +185,37 @@ async def test_ai_task_subentry_flow(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Medium"
     assert result["data"] == {CONF_MODEL: "medium"}
+
+
+@pytest.mark.parametrize(
+    ("model", "title"),
+    [
+        ("pplx-decider-latest", "Decider"),
+        ("pplx-decider-flash-latest", "Decider Flash"),
+    ],
+)
+async def test_evaluate_subentry_flow(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    model: str,
+    title: str,
+) -> None:
+    """Test decision task subentry flow."""
+    result = await hass.config_entries.subentries.async_init(
+        (mock_config_entry.entry_id, SUBENTRY_TYPE_AI_TASK_EVALUATE),
+        context={"source": SOURCE_USER},
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        user_input={CONF_MODEL: model},
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == title
+    assert result["data"] == {CONF_MODEL: model}
 
 
 @pytest.mark.parametrize(

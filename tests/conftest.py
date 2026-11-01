@@ -25,6 +25,7 @@ from pytest_homeassistant.common import MockConfigEntry, async_mock_service
 from custom_components.perplexity.const import (
     DOMAIN,
     SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_AI_TASK_EVALUATE,
     SUBENTRY_TYPE_CONVERSATION,
 )
 
@@ -65,6 +66,13 @@ def mock_config_entry(hass: HomeAssistant) -> MockConfigEntry:
                 "subentry_id": "ulid-conversation",
                 "unique_id": None,
             },
+            {
+                "data": {CONF_MODEL: "pplx-decider-latest"},
+                "subentry_type": SUBENTRY_TYPE_AI_TASK_EVALUATE,
+                "title": "Decider",
+                "subentry_id": "ulid-evaluate",
+                "unique_id": None,
+            },
         ],
     )
     entry.add_to_hass(hass)
@@ -90,6 +98,8 @@ def mock_perplexity_client(mock_perplexity_class: MagicMock) -> MagicMock:
     client.platform_headers = MagicMock(return_value={})
     client.responses = MagicMock()
     client.responses.create = AsyncMock(return_value=MagicMock())
+    client.decisions = MagicMock()
+    client.decisions.create = AsyncMock(return_value=MagicMock())
     return client
 
 
