@@ -182,9 +182,9 @@ data:
       type: choice
       instructions: How many cars are parked in the driveway?
       criteria:
-        - none
-        - one
-        - two or more
+        none: No cars parked
+        one: Exactly one car
+        two or more: Two or more cars
 ```
 
 Response:

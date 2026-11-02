@@ -572,6 +572,7 @@ IMAGE_PART = {
         ("Overcast", ["Overcast", IMAGE_PART]),
         (None, [IMAGE_PART]),
         ({"humidity": 95}, [{"humidity": 95}, IMAGE_PART]),
+        (["rain", "wind"], ["rain", "wind", IMAGE_PART]),
     ],
 )
 async def test_evaluate_with_attachment(

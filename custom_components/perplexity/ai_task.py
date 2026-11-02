@@ -181,7 +181,12 @@ class PerplexityEvaluateEntity(
                 {"type": "image_url", "image_url": {"url": file["image_url"]}}
                 for file in files
             ]
-            state = images if task.state is None else [state, *images]
+            if task.state is None:
+                state = images
+            elif isinstance(state, list):
+                state = [*state, *images]
+            else:
+                state = [state, *images]
 
         client: AsyncPerplexity = self.entry.runtime_data
         try:
