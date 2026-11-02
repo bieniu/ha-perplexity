@@ -71,9 +71,9 @@
             }
         },
         "ai_task_evaluate": {
-            "entry_type": "Ocena zadania AI",
+            "entry_type": "Zadanie decyzyjne AI",
             "initiate_flow": {
-                "user": "Dodaj ocen\u0119 zadania AI"
+                "user": "Dodaj zadanie decyzyjne AI"
             },
             "step": {
                 "user": {
@@ -83,7 +83,7 @@
                     "data_description": {
                         "model": "Model decyzyjny Perplexity. `Decider` jest dok\u0142adniejszy, `Decider Flash` jest szybszy. Zobacz {decisions_url}"
                     },
-                    "description": "Skonfiguruj now\u0105 ocen\u0119 zadania AI. U\u017cyj jej w sekcji **Decyzje** w **Ustawienia** >> **Asystenci g\u0142osowi** >> **AI** lub z akcj\u0105 `ai_task.evaluate`"
+                    "description": "Skonfiguruj nowe zadanie decyzyjne AI. U\u017cyj go w sekcji **Decyzje** w **Ustawienia** >> **Asystenci g\u0142osowi** >> **AI** lub z akcj\u0105 `ai_task.evaluate`"
                 }
             }
         },
