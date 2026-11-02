@@ -25,10 +25,14 @@ dev = [
 [tool.uv]
 prerelease = "allow"
 
+# pytest-home-assistant is not published on PyPI; it ships in the Home Assistant
+# core repository. Bump the tag together with the homeassistant pin above.
 [tool.uv.sources]
 pytest-home-assistant = { git = "https://github.com/home-assistant/core.git", rev = "6cfd47af9851a1552ad6f58c926b5814689a9f1d", subdirectory = "packages/pytest-home-assistant" }
 
 [tool.pytest.ini_options]
+# The respx plugin imports `httpx` before Home Assistant can alias it to `httpx2`
+addopts = "-p no:respx"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
