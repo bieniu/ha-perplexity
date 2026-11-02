@@ -1,5 +1,35 @@
 # serializer version: 1
-# name: test_platform_entity[ai_task][ai_task.fast-entry]
+# name: test_platform_entity[ai_task-2][ai_task.decider-entry]
+  dict({
+    'config_subentry_id': 'ulid-evaluate',
+    'disabled_by': None,
+    'entity_category': None,
+    'entity_id': 'ai_task.decider',
+    'icon': None,
+    'name': None,
+    'next_name_part': <NextNamePart.DEVICE: 'device'>,
+    'options': ReadOnlyDict({
+      'conversation': ReadOnlyDict({
+        'should_expose': False,
+      }),
+    }),
+    'original_name': None,
+    'platform': 'perplexity',
+    'translation_key': None,
+    'unique_id': 'ulid-evaluate',
+  })
+# ---
+# name: test_platform_entity[ai_task-2][ai_task.decider-state]
+  dict({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Decider',
+      <EntityStateAttribute.SUPPORTED_FEATURES: 'supported_features'>: <AITaskEntityFeature: 10>,
+    }),
+    'entity_id': 'ai_task.decider',
+    'state': 'unknown',
+  })
+# ---
+# name: test_platform_entity[ai_task-2][ai_task.fast-entry]
   dict({
     'config_subentry_id': 'ulid-ai-task',
     'disabled_by': None,
@@ -19,7 +49,7 @@
     'unique_id': 'ulid-ai-task',
   })
 # ---
-# name: test_platform_entity[ai_task][ai_task.fast-state]
+# name: test_platform_entity[ai_task-2][ai_task.fast-state]
   dict({
     'attributes': ReadOnlyDict({
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Fast',
@@ -29,7 +59,7 @@
     'state': 'unknown',
   })
 # ---
-# name: test_platform_entity[conversation][conversation.fast-entry]
+# name: test_platform_entity[conversation-1][conversation.fast-entry]
   dict({
     'config_subentry_id': 'ulid-conversation',
     'disabled_by': None,
@@ -49,7 +79,7 @@
     'unique_id': 'ulid-conversation',
   })
 # ---
-# name: test_platform_entity[conversation][conversation.fast-state]
+# name: test_platform_entity[conversation-1][conversation.fast-state]
   dict({
     'attributes': ReadOnlyDict({
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Fast',

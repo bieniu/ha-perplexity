@@ -26,7 +26,7 @@ To configure integration in Home Assistant, go to **Settings** >> **Devices & se
 
 To generate API key go to [https://www.perplexity.ai/account/api/keys](https://www.perplexity.ai/account/api/keys)
 
-Now you can add Perplexity conversation agent or AI task configuration.
+Now you can add Perplexity conversation agent, AI task or AI task evaluation configuration.
 
 <img width="1031" height="116" alt="obraz" src="https://github.com/user-attachments/assets/a8ef5247-93d8-4ff7-9186-0136bc1eeb8f" />
 
@@ -45,12 +45,15 @@ To configure Perplexity as a conversation agent for you Voice assistant:
 
   <img width="607" height="421" alt="obraz" src="https://github.com/user-attachments/assets/aae705c7-59cd-4709-9ba8-cf20061dcb97" />
 
+- You can use the Perplexity AI task evaluation for decisions in Home Assistant. Go to **Settings** >> **Voice assistants** >> **AI** and select it under **Decisions**.
+
 ## Features
 
 Perplexity integration supports:
 
 - [Conversation](https://www.home-assistant.io/integrations/conversation/) platform (beta)
 - [AI Task](https://www.home-assistant.io/integrations/ai_task/) platform
+- AI task evaluation (`ai_task.evaluate`) backed by the Perplexity Decisions API, answering yes/no, choice and score questions with probabilities instead of text; image attachments (PNG, JPEG, WebP) are evaluated together with `state`
 - **Fast**, **Low**, **Medium** and **High** Perplexity presets (Agent API); see [what each preset does](https://docs.perplexity.ai/docs/agent-api/presets)
 - optional **reasoning effort** configuration (minimal, low, medium, high, extra high) for every preset; leave it empty to use the preset default
 - control of entities exposed to Assist through Home Assistant's LLM tools (the **Assist** API), the same way the built-in AI integrations work
@@ -111,6 +114,93 @@ Response:
 ```yaml
 data:
   car_count: 42
+```
+
+### Deciding whether to send a notification
+
+```yaml
+action: ai_task.evaluate
+data:
+  task_name: Rain check
+  entity_id: ai_task.decider
+  state: >-
+    Weather: {{ states('weather.home') }}, humidity
+    {{ state_attr('weather.home', 'humidity') }}%, wind
+    {{ state_attr('weather.home', 'wind_speed') }} km/h
+  questions:
+    rain:
+      type: noul
+      instructions: Will it rain within the next hour?
+    severity:
+      type: score
+      instructions: How bad is the weather for a walk?
+      criteria:
+        - fine
+        - unpleasant
+        - dangerous
+```
+
+Response:
+
+```yaml
+answers:
+  rain:
+    type: noul
+    noul: 0.82
+  severity:
+    type: score
+    score: 1.3
+    probabilities:
+      - 0.1
+      - 0.5
+      - 0.4
+```
+
+### Checking a camera snapshot with questions
+
+```yaml
+action: ai_task.evaluate
+data:
+  task_name: Driveway check
+  entity_id: ai_task.decider
+  state: Front driveway, 14:05
+  attachments:
+    media_content_id: media-source://camera/camera.parking
+    media_content_type: application/vnd.apple.mpegurl
+    metadata:
+      title: parking
+      thumbnail: /api/camera_proxy/camera.parking
+      media_class: video
+      navigateIds:
+        - media_content_type: app
+          media_content_id: media-source://camera
+  questions:
+    van:
+      type: noul
+      instructions: Is a delivery van parked in the driveway?
+    cars:
+      type: choice
+      instructions: How many cars are parked in the driveway?
+      criteria:
+        none: No cars parked
+        one: Exactly one car
+        two or more: Two or more cars
+```
+
+Response:
+
+```yaml
+answers:
+  van:
+    type: noul
+    noul: 0.91
+  cars:
+    type: choice
+    choice: two or more
+    probabilities:
+      none: 0.05
+      one: 0.25
+      two or more: 0.70
 ```
 
 ## How to debug

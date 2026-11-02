@@ -35,6 +35,7 @@ from perplexity import AsyncPerplexity, AuthenticationError, PerplexityError
 from .const import (
     CONF_INCLUDE_HOME_LOCATION,
     CONF_REASONING_EFFORT,
+    DECISION_MODELS,
     DOMAIN,
     INTEGRATION_HEADERS,
     LOGGER,
@@ -43,12 +44,15 @@ from .const import (
     REASONING_EFFORT_OPTIONS,
     RECOMMENDED_CHAT_MODEL,
     RECOMMENDED_CONVERSATION_OPTIONS,
+    RECOMMENDED_DECISION_MODEL,
     SUBENTRY_TYPE_AI_TASK,
+    SUBENTRY_TYPE_AI_TASK_EVALUATE,
     SUBENTRY_TYPE_CONVERSATION,
 )
 
 DESCRIPTION_PLACEHOLDERS = {
     "api_key_url": "https://www.perplexity.ai/account/api/keys",
+    "decisions_url": "https://docs.perplexity.ai/docs/decisions/quickstart",
     "presets_url": "https://docs.perplexity.ai/docs/agent-api/presets",
 }
 
@@ -67,6 +71,7 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         """Return subentries supported by this handler."""
         return {
             SUBENTRY_TYPE_AI_TASK: PerplexityAITaskFlowHandler,
+            SUBENTRY_TYPE_AI_TASK_EVALUATE: PerplexityEvaluateFlowHandler,
             SUBENTRY_TYPE_CONVERSATION: PerplexityConversationFlowHandler,
         }
 
@@ -227,6 +232,37 @@ class PerplexityAITaskFlowHandler(ConfigSubentryFlow):
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=probatio.Schema(schema),
+        )
+
+
+class PerplexityEvaluateFlowHandler(ConfigSubentryFlow):
+    """Handle subentry flow for Perplexity AI task evaluation."""
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """User flow to create an AI task evaluation subentry."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=DECISION_MODELS[user_input[CONF_MODEL]], data=user_input
+            )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=probatio.Schema(
+                {
+                    probatio.Required(
+                        CONF_MODEL, default=RECOMMENDED_DECISION_MODEL
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=list(DECISION_MODELS),
+                            translation_key="decision_model",
+                            mode=SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
+                }
+            ),
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
         )
 
 

@@ -27,6 +27,15 @@
         'title': 'Fast',
         'unique_id': None,
       }),
+      'ulid-evaluate': dict({
+        'data': dict({
+          'model': 'pplx-decider-latest',
+        }),
+        'subentry_id': 'ulid-evaluate',
+        'subentry_type': 'ai_task_evaluate',
+        'title': 'Decider',
+        'unique_id': None,
+      }),
     }),
     'title': 'Perplexity',
   })
