@@ -18,7 +18,6 @@ dev = [
     "pytest-error-for-skips==2.0.2",
     "pytest-home-assistant",
     "pytest-timeout==2.4.0",
-    "pyturbojpeg",
     "ruff==0.17.3",
     "ty==0.0.92",
 ]
