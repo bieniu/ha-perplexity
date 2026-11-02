@@ -13,11 +13,11 @@ from homeassistant.const import CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
-from perplexity import AuthenticationError, PerplexityError
-from pytest_homeassistant.common import MockConfigEntry
 from homeassistant.util.json import JsonValueType
+from perplexity import AuthenticationError, PerplexityError
 from perplexity._models import construct_type
 from perplexity.types import DecisionCreateResponse
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.perplexity.const import (
     CONF_REASONING_EFFORT,
