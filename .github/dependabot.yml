@@ -19,6 +19,9 @@ updates:
         patterns:
           - "pytest"
           - "pytest-*"
+    # Pinned to the Core commit matching the `homeassistant` version, bumped by hand together with it
+    ignore:
+      - dependency-name: "pytest-home-assistant"
 
   - package-ecosystem: "github-actions"
     directory: "/"

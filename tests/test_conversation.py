@@ -19,7 +19,7 @@ from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import intent, llm
 from homeassistant.helpers.chat_session import async_get_chat_session
 from homeassistant.helpers.json import json_dumps
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.perplexity.const import (
     CONF_INCLUDE_HOME_LOCATION,
@@ -475,7 +475,7 @@ async def test_conversation_streams_text(
         deltas.append(delta)
 
     with (
-        async_get_chat_session(hass) as session,
+        async_get_chat_session(hass, context=Context()) as session,
         async_get_chat_log(hass, session, chat_log_delta_listener=_listener),
     ):
         result = await conversation.async_converse(

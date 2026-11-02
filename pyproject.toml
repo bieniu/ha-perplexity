@@ -11,10 +11,13 @@ dependencies = [
 dev = [
     "gazetteer-matcher",
     "hassil",
+    "homeassistant==2026.11.0b1",
     "home-assistant-intents",
     "prek==0.5.7",
+    "pytest-cov==7.0.0",
     "pytest-error-for-skips==2.0.2",
-    "pytest-homeassistant-custom-component==0.13.375",
+    "pytest-home-assistant",
+    "pytest-timeout==2.4.0",
     "pyturbojpeg",
     "ruff==0.17.3",
     "ty==0.0.92",
@@ -22,6 +25,9 @@ dev = [
 
 [tool.uv]
 prerelease = "allow"
+
+[tool.uv.sources]
+pytest-home-assistant = { git = "https://github.com/home-assistant/core.git", rev = "6cfd47af9851a1552ad6f58c926b5814689a9f1d", subdirectory = "packages/pytest-home-assistant" }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
