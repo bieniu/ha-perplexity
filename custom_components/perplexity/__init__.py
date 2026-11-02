@@ -25,7 +25,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerplexityConfigEntry) -
     """Set up Perplexity from a config entry."""
     client = AsyncPerplexity(
         api_key=entry.data[CONF_API_KEY],
-        http_client=get_async_client(hass),
+        # HA 2026.11 aliases `httpx` to `httpx2` at runtime, ty sees two classes
+        http_client=get_async_client(hass),  # ty: ignore[invalid-argument-type]
         default_headers=INTEGRATION_HEADERS,
     )
 

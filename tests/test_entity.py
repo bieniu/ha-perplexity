@@ -16,7 +16,7 @@ from homeassistant.helpers import llm
 from perplexity import AuthenticationError, PerplexityError
 from perplexity.generated.api import FunctionCallOutputItemOutput
 from perplexity.types.function_call_output_item import FunctionCallOutputItem
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.perplexity.const import DOMAIN
 from custom_components.perplexity.entity import (

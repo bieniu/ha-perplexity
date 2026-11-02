@@ -11,11 +11,13 @@ dependencies = [
 dev = [
     "gazetteer-matcher",
     "hassil",
+    "homeassistant==2026.11.0b1",
     "home-assistant-intents",
     "prek==0.5.7",
+    "pytest-cov==7.0.0",
     "pytest-error-for-skips==2.0.2",
-    "pytest-homeassistant-custom-component==0.13.375",
-    "pyturbojpeg",
+    "pytest-home-assistant",
+    "pytest-timeout==2.4.0",
     "ruff==0.17.3",
     "ty==0.0.92",
 ]
@@ -23,7 +25,14 @@ dev = [
 [tool.uv]
 prerelease = "allow"
 
+# pytest-home-assistant is not published on PyPI; it ships in the Home Assistant
+# core repository. Bump the tag together with the homeassistant pin above.
+[tool.uv.sources]
+pytest-home-assistant = { git = "https://github.com/home-assistant/core.git", rev = "6cfd47af9851a1552ad6f58c926b5814689a9f1d", subdirectory = "packages/pytest-home-assistant" }
+
 [tool.pytest.ini_options]
+# The respx plugin imports `httpx` before Home Assistant can alias it to `httpx2`
+addopts = "-p no:respx"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 

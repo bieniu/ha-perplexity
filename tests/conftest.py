@@ -1,9 +1,8 @@
 """Tests helpers for the Perplexity integration."""
 
 from collections.abc import AsyncGenerator, Generator, Sequence
-from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.components.conversation.const import DOMAIN as CONVERSATION_DOMAIN
@@ -21,13 +20,7 @@ from perplexity.generated.api import (
     OutputItemAddedEventOutput,
     OutputItemDoneEventOutput,
 )
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_mock_service,
-)
-from syrupy.assertion import SnapshotAssertion
-from syrupy.extensions.amber import AmberSnapshotExtension
-from syrupy.location import PyTestLocation
+from pytest_homeassistant.common import MockConfigEntry, async_mock_service
 
 from custom_components.perplexity.const import (
     DOMAIN,
@@ -41,12 +34,6 @@ async def setup_ha(hass: HomeAssistant) -> None:
     """Set up Home Assistant."""
     assert await async_setup_component(hass, "homeassistant", {})
     assert await async_setup_component(hass, CONVERSATION_DOMAIN, {})
-
-
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations: Mock) -> None:
-    """Auto enable custom integrations."""
-    return
 
 
 @pytest.fixture
@@ -118,12 +105,6 @@ async def mock_setup_entry(
     return mock_config_entry
 
 
-@pytest.fixture
-def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
-    """Return snapshot assertion fixture."""
-    return snapshot.use_extension(SnapshotExtension)
-
-
 def function_call_item(
     name: str,
     arguments: str,
@@ -191,13 +172,3 @@ def expose_light(hass: HomeAssistant) -> list[ServiceCall]:
     async_expose_entity(hass, CONVERSATION_DOMAIN, "light.living_room", True)  # noqa: FBT003
     # The intent handler refuses entities whose service is not registered
     return async_mock_service(hass, "light", "turn_on")
-
-
-class SnapshotExtension(AmberSnapshotExtension):
-    """Extension for Syrupy."""
-
-    @classmethod
-    def dirname(cls, *, test_location: PyTestLocation) -> str:
-        """Return the directory for the snapshot files."""
-        test_dir = Path(test_location.filepath).parent
-        return str(test_dir.joinpath("snapshots"))

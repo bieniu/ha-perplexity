@@ -36,7 +36,8 @@ CI runs in order: lint → format check (`--check`) → types → prek → test.
 
 ## Testing
 
-- Tests in `tests/`, snapshots in `tests/snapshots/` (Syrupy with custom `SnapshotExtension` in conftest.py)
+- Tests use HA's official `pytest-home-assistant` plugin (`pytest_homeassistant.common` helpers, `hass` fixture, custom integrations enabled, `snapshot` fixture with the HA Syrupy extension writing to `tests/snapshots/`)
+- The plugin is not on PyPI: `[tool.uv.sources]` pins it to the Core commit of the `homeassistant` version in the `dev` group. Bump both together and run `uv lock`
 - Mock `AsyncPerplexity` via `mock_perplexity_client` / `mock_setup_entry` fixtures
 - Config flow tests require **100% coverage**: user, reauth, reconfigure, subentry flows, errors, dedup
 - Test through integration setup (`mock_setup_entry`), never entities in isolation

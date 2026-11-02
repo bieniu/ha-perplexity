@@ -76,7 +76,8 @@ class PerplexityConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             client = AsyncPerplexity(
                 api_key=user_input[CONF_API_KEY],
-                http_client=get_async_client(self.hass),
+                # HA 2026.11 aliases `httpx` to `httpx2` at runtime, ty sees two classes
+                http_client=get_async_client(self.hass),  # ty: ignore[invalid-argument-type]
                 default_headers=INTEGRATION_HEADERS,
             )
             await client.responses.create(
