@@ -16,7 +16,7 @@ dev = [
     "prek==0.5.10",
     "pytest-cov==7.1.0",
     "pytest-error-for-skips==2.0.2",
-    "pytest-homeassistant==2026.11.0",
+    "pytest-homeassistant==2026.11.1",
     "pytest-timeout==2.4.0",
     "ruff==0.17.4",
     "ty==0.0.99",
