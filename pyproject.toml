@@ -13,13 +13,13 @@ dev = [
     "hassil",
     "homeassistant",
     "home-assistant-intents",
-    "prek==0.5.10",
+    "prek==0.5.11",
     "pytest-cov==7.1.0",
     "pytest-error-for-skips==2.0.2",
     "pytest-homeassistant==2026.11.1",
     "pytest-timeout==2.4.0",
-    "ruff==0.17.5",
-    "ty==0.0.104",
+    "ruff==0.17.6",
+    "ty==0.0.107",
 ]
 
 [tool.uv]
